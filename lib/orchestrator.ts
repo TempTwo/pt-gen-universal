@@ -3,13 +3,51 @@ import { Scraper } from './interfaces/scraper';
 import { Normalizer } from './interfaces/normalizer';
 import { Formatter } from './interfaces/formatter';
 import { MediaInfo, SearchResult } from './types/schema';
+import { DoubanScraper } from './scrapers/douban';
+import { ImdbScraper } from './scrapers/imdb';
+import { BangumiScraper } from './scrapers/bangumi';
+import { SteamScraper } from './scrapers/steam';
+import { GogScraper } from './scrapers/gog';
+import { IndienovaScraper } from './scrapers/indienova';
+import { TmdbScraper } from './scrapers/tmdb';
+import { DoubanNormalizer } from './normalizers/douban';
+import { ImdbNormalizer } from './normalizers/imdb';
+import { BangumiNormalizer } from './normalizers/bangumi';
+import { SteamNormalizer } from './normalizers/steam';
+import { GogNormalizer } from './normalizers/gog';
+import { IndienovaNormalizer } from './normalizers/indienova';
+import { TmdbNormalizer } from './normalizers/tmdb';
+import { BBCodeFormatter } from './formatters/bbcode';
+import { JsonFormatter } from './formatters/json';
+import { MarkdownFormatter } from './formatters/markdown';
 
 export class Orchestrator {
     private scrapers: Map<string, Scraper> = new Map();
     private normalizers: Map<string, Normalizer> = new Map();
     private formatters: Map<string, Formatter> = new Map();
 
-    constructor(private config: AppConfig) { }
+    constructor(private config: AppConfig) {
+        // Register default components
+        this.registerScraper('douban', new DoubanScraper());
+        this.registerScraper('tmdb', new TmdbScraper());
+        this.registerScraper('imdb', new ImdbScraper());
+        this.registerScraper('bangumi', new BangumiScraper());
+        this.registerScraper('steam', new SteamScraper());
+        this.registerScraper('gog', new GogScraper());
+        this.registerScraper('indienova', new IndienovaScraper());
+
+        this.registerNormalizer('douban', new DoubanNormalizer());
+        this.registerNormalizer('tmdb', new TmdbNormalizer());
+        this.registerNormalizer('imdb', new ImdbNormalizer());
+        this.registerNormalizer('bangumi', new BangumiNormalizer());
+        this.registerNormalizer('steam', new SteamNormalizer());
+        this.registerNormalizer('gog', new GogNormalizer());
+        this.registerNormalizer('indienova', new IndienovaNormalizer());
+
+        this.registerFormatter('bbcode', new BBCodeFormatter());
+        this.registerFormatter('json', new JsonFormatter());
+        this.registerFormatter('markdown', new MarkdownFormatter());
+    }
 
     registerScraper(name: string, scraper: Scraper) {
         this.scrapers.set(name, scraper);
@@ -69,5 +107,13 @@ export class Orchestrator {
         }
 
         return normalizer.normalize(rawData, this.config);
+    }
+
+    async search(sourceName: string, query: string): Promise<SearchResult[]> {
+        const scraper = this.scrapers.get(sourceName);
+        if (!scraper) {
+            throw new Error(`Scraper not found: ${sourceName}`);
+        }
+        return scraper.search(query, this.config);
     }
 }

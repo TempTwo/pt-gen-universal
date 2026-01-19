@@ -36,6 +36,8 @@
         "html2bbcode": "^1.2.6"
     },
     "devDependencies": {
+        "@types/node": "^25.0.9",
+        "typescript": "^5.9.3",
         "vitest": "^4.0.17",
         "wrangler": "^4.14.1"
     },

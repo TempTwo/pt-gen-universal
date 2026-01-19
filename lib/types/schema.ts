@@ -76,4 +76,5 @@ export interface SearchResult {
     type?: string;    // 类型 (movie, tv, etc.)
     link: string;     // 详情页链接
     poster?: string;  // 海报
+    extra?: any;      // 额外信息
 }

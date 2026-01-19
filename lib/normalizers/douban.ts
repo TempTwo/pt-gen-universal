@@ -266,8 +266,8 @@ export class DoubanNormalizer implements Normalizer {
                 .replace(/<br\s*\/?>/gi, '\n')
                 .replace(/<[^>]+>/g, '')
                 .split('\n')
-                .map((a) => a.trim())
-                .filter((a) => a.length > 0)
+                .map((a: string) => a.trim())
+                .filter((a: string) => a.length > 0)
                 .join('\n');
         } else {
             info.introduction = '暂无相关剧情介绍';
