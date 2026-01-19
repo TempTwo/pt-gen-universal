@@ -1,15 +1,24 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
-import { parseDoubanSubjectHtml } from '../lib/douban.js'
+import { DoubanNormalizer } from '../lib/normalizers/douban'
 
 const desktopHtml = readFileSync(new URL('./fixtures/douban.html', import.meta.url), 'utf-8')
 const mobileHtml = readFileSync(new URL('./fixtures/douban_m.html', import.meta.url), 'utf-8')
 
-describe('Douban HTML parsing', () => {
-  it('parses desktop HTML sample', () => {
-    const data = parseDoubanSubjectHtml(desktopHtml, '1292052')
+describe('Douban HTML parsing (New Architecture)', () => {
+  const normalizer = new DoubanNormalizer();
 
-    expect(data.success).toBe(true)
+  it('parses desktop HTML sample', () => {
+    const rawData = {
+      site: 'douban',
+      sid: '1292052',
+      html: desktopHtml,
+      douban_link: 'https://movie.douban.com/subject/1292052/',
+      success: true
+    };
+
+    const data = normalizer.normalize(rawData, {});
+
     expect(data.site).toBe('douban')
     expect(data.douban_link).toBe('https://movie.douban.com/subject/1292052/')
     expect(data.year.trim()).toBe('1994')
@@ -21,13 +30,22 @@ describe('Douban HTML parsing', () => {
   })
 
   it('parses mobile HTML sample', () => {
-    const data = parseDoubanSubjectHtml(mobileHtml, '1292052')
+    const rawData = {
+      site: 'douban',
+      sid: '1292052',
+      html: mobileHtml,
+      douban_link: 'https://m.douban.com/movie/subject/1292052/',
+      success: true
+    };
 
-    expect(data.success).toBe(true)
+    const data = normalizer.normalize(rawData, {});
+
     expect(data.site).toBe('douban')
     expect(data.year.trim()).toBe('1994')
     expect(data.region).toEqual(['美国'])
     expect(data.genre).toEqual(['剧情', '犯罪'])
+    // Note: The fixture content might have different separators or spaces, 
+    // but legacy test expected '1994-09-10(多伦多电影节)'.
     expect(data.playdate).toContain('1994-09-10(多伦多电影节)')
     expect(data.duration).toBe('142分钟')
     expect(String(data.douban_rating_average)).toBe('9.7')
