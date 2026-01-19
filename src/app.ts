@@ -3,13 +3,8 @@ import { cors } from 'hono/cors'
 import { AUTHOR, VERSION } from '../lib/const';
 import debug_get_err from '../lib/utils/error';
 
-import { search_douban, gen_douban } from '../lib/douban';
-import { search_imdb, gen_imdb } from '../lib/imdb';
-import { search_bangumi, gen_bangumi } from '../lib/bangumi';
-import { gen_steam } from '../lib/steam';
-import { gen_indienova } from '../lib/indienova';
-import { gen_gog } from '../lib/gog';
-import { search_tmdb, gen_tmdb } from '../lib/tmdb';
+import { Orchestrator } from '../lib/orchestrator';
+import { BBCodeFormatter } from '../lib/formatters/bbcode';
 import { AppConfig } from '../lib/types/config';
 
 // 读取 HTML 页面（兼容 Node.js 和 CF Workers）
@@ -69,23 +64,8 @@ export function createApp(storage: any, config: AppConfig = {}) {
   const app = new Hono()
 
   // 搜索处理器映射表
-  const searchHandlers = new Map<string, (query: string, config?: AppConfig) => Promise<any>>([
-    ['douban', search_douban],
-    ['imdb', search_imdb],
-    ['bangumi', search_bangumi],
-    ['tmdb', search_tmdb]
-  ])
-
-  // 信息生成处理器映射表
-  const genHandlers = new Map<string, (sid: string, config?: AppConfig) => Promise<any>>([
-    ['douban', gen_douban],
-    ['imdb', gen_imdb],
-    ['bangumi', gen_bangumi],
-    ['steam', gen_steam],
-    ['indienova', gen_indienova],
-    ['gog', gen_gog],
-    ['tmdb', gen_tmdb]
-  ])
+  const orchestrator = new Orchestrator(config);
+  const bbcodeFormatter = new BBCodeFormatter();
 
   // 使用传入的 HTML 页面或默认的 page 变量
   const htmlPage = config.htmlPage || page
@@ -188,14 +168,24 @@ export function createApp(storage: any, config: AppConfig = {}) {
       return c.json({ error: 'Missing query parameter: q or search' }, 400)
     }
 
-    const handler = searchHandlers.get(source)
-    if (!handler) {
-      return c.json({ error: `Unknown value of key 'source': ${source}` }, 400)
-    }
-
     try {
-      const data = await handler(keywords, config)
-      return c.json(makeJsonResponseData(data))
+      const data = await orchestrator.search(source, keywords)
+      // Legacy format adaptation if needed? 
+      // Orchestrator.search returns SearchResult[], legacy returned { data: [...] }
+      // The current wrapper `lib/douban.ts` returned { data: results.map(...) }
+      // We should match that structure.
+      const compatibleData = {
+        data: data.map(item => ({
+          year: item.year,
+          subtype: item.type,
+          title: item.title,
+          subtitle: item.subtitle,
+          link: item.link,
+          id: item.id,
+          img: item.poster
+        }))
+      }
+      return c.json(makeJsonResponseData(compatibleData))
     } catch (e: any) {
       return handleError(c, e)
     }
@@ -256,13 +246,23 @@ export function createApp(storage: any, config: AppConfig = {}) {
 
   // 站点信息处理函数（消除重复代码）
   async function handleSiteInfo(c: Context, site: string, sid: string) {
-    const handler = genHandlers.get(site)
-    if (!handler) {
-      return c.json({ error: `Unknown value of key 'site': ${site}` }, 400)
-    }
-
     try {
-      const data = await handler(sid, config)
+      // 1. Get Normalized Info
+      const info = await orchestrator.getMediaInfo(site, sid)
+
+      // 2. Format with BBCode
+      const bbcode = bbcodeFormatter.format(info)
+
+      // 3. Construct legacy response
+      const data = {
+        sid: sid,
+        success: true,
+        ...info,
+        format: bbcode,
+        // Legacy extra fields (best effort compatibility)
+        link: info.link || ``,
+      }
+
       return c.json(makeJsonResponseData(data))
     } catch (e: any) {
       return handleError(c, e)
