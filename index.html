@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PT Gen - 资源信息生成工具</title>
     <style>
         :root {
-            --primary: #10b981; /* Modern Green */
+            --primary: #10b981;
+            /* Modern Green */
             --primary-hover: #059669;
             --bg-body: #f3f4f6;
             --bg-card: #ffffff;
@@ -29,8 +31,13 @@
             --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; transition: background-color 0.3s, color 0.3s, border-color 0.3s; }
-        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+
         body {
             font-family: var(--font-family);
             background-color: var(--bg-body);
@@ -54,8 +61,18 @@
             z-index: 100;
         }
 
-        .brand { font-size: 1.25rem; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px; }
-        .brand span { color: var(--primary); }
+        .brand {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .brand span {
+            color: var(--primary);
+        }
 
         .theme-toggle {
             cursor: pointer;
@@ -66,7 +83,11 @@
             padding: 8px;
             border-radius: 50%;
         }
-        .theme-toggle:hover { background-color: var(--input-bg); color: var(--primary); }
+
+        .theme-toggle:hover {
+            background-color: var(--input-bg);
+            color: var(--primary);
+        }
 
         /* Main Container */
         main {
@@ -101,7 +122,8 @@
             min-width: 280px;
         }
 
-        input[type="text"], select {
+        input[type="text"],
+        select {
             width: 100%;
             padding: 12px 16px;
             background-color: var(--input-bg);
@@ -112,7 +134,8 @@
             outline: none;
         }
 
-        input[type="text"]:focus, select:focus {
+        input[type="text"]:focus,
+        select:focus {
             border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
         }
@@ -136,11 +159,25 @@
             gap: 8px;
             font-size: 1rem;
         }
-        
-        .btn:hover { background-color: var(--primary-hover); }
-        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-        .btn-secondary { background-color: var(--input-bg); color: var(--text-main); border: 1px solid var(--border); }
-        .btn-secondary:hover { border-color: var(--text-sub); }
+
+        .btn:hover {
+            background-color: var(--primary-hover);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background-color: var(--input-bg);
+            color: var(--text-main);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-sub);
+        }
 
         .settings-btn {
             padding: 12px;
@@ -153,8 +190,12 @@
             align-items: center;
             margin-bottom: 1rem;
         }
-        .result-title { font-size: 1.1rem; font-weight: 600; }
-        
+
+        .result-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
         textarea {
             width: 100%;
             min-height: 300px;
@@ -186,10 +227,27 @@
             border-radius: 8px;
             cursor: pointer;
         }
-        .search-item:hover { border-color: var(--primary); }
-        .item-info { display: flex; flex-direction: column; }
-        .item-title { font-weight: 600; font-size: 1rem; }
-        .item-meta { font-size: 0.85rem; color: var(--text-sub); margin-top: 4px; }
+
+        .search-item:hover {
+            border-color: var(--primary);
+        }
+
+        .item-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .item-title {
+            font-weight: 600;
+            font-size: 1rem;
+        }
+
+        .item-meta {
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            margin-top: 4px;
+        }
+
         .item-tag {
             background-color: var(--border);
             color: var(--text-sub);
@@ -200,8 +258,20 @@
         }
 
         /* Links Section */
-        .links-section h3 { font-size: 1rem; margin-bottom: 1rem; color: var(--text-sub); }
-        .links-list { list-style: none; padding-left: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
+        .links-section h3 {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            color: var(--text-sub);
+        }
+
+        .links-list {
+            list-style: none;
+            padding-left: 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
         .links-list li a {
             display: block;
             text-decoration: none;
@@ -210,17 +280,32 @@
             padding: 8px;
             border-radius: 6px;
         }
-        .links-list li a:hover { background-color: var(--input-bg); color: var(--primary); }
-        .links-list li a span { color: var(--primary); font-weight: 500; }
+
+        .links-list li a:hover {
+            background-color: var(--input-bg);
+            color: var(--primary);
+        }
+
+        .links-list li a span {
+            color: var(--primary);
+            font-weight: 500;
+        }
 
         /* API Key Modal */
         .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            display: none; justify-content: center; align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
             z-index: 200;
             backdrop-filter: blur(2px);
         }
+
         .modal {
             background: var(--bg-card);
             padding: 2rem;
@@ -229,13 +314,29 @@
             max-width: 400px;
             box-shadow: var(--shadow);
         }
-        .modal h3 { margin-bottom: 1rem; }
-        .modal-actions { margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 10px; }
+
+        .modal h3 {
+            margin-bottom: 1rem;
+        }
+
+        .modal-actions {
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
 
         /* Utilities */
-        .hidden { display: none !important; }
-        .loading { position: relative; opacity: 0.7; pointer-events: none; }
-        
+        .hidden {
+            display: none !important;
+        }
+
+        .loading {
+            position: relative;
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
         /* Toast */
         #toast {
             visibility: hidden;
@@ -251,26 +352,119 @@
             bottom: 30px;
             transform: translateX(-50%);
             font-size: 14px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
-        #toast.show { visibility: visible; animation: fadein 0.5s, fadeout 0.5s 2.5s; }
 
-        @keyframes fadein { from {bottom: 0; opacity: 0;} to {bottom: 30px; opacity: 1;} }
-        @keyframes fadeout { from {bottom: 30px; opacity: 1;} to {bottom: 0; opacity: 0;} }
-        @keyframes spin { 100% { transform: rotate(360deg); } }
+        #toast.show {
+            visibility: visible;
+            animation: fadein 0.5s, fadeout 0.5s 2.5s;
+        }
 
+        @keyframes fadein {
+            from {
+                bottom: 0;
+                opacity: 0;
+            }
+
+            to {
+                bottom: 30px;
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeout {
+            from {
+                bottom: 30px;
+                opacity: 1;
+            }
+
+            to {
+                bottom: 0;
+                opacity: 0;
+            }
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Small Button & Active State */
+        .btn-sm {
+            padding: 4px 10px;
+            font-size: 0.85rem;
+        }
+
+        .btn.active {
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Segmented Control (Capsule) */
+        .capsule-group {
+            display: inline-flex;
+            background-color: var(--input-bg);
+            padding: 4px;
+            border-radius: 9999px;
+            /* full rounded */
+            border: 1px solid var(--border);
+            gap: 2px;
+        }
+
+        .capsule-btn {
+            background: none;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            color: var(--text-sub);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .capsule-btn:hover {
+            color: var(--text-main);
+        }
+
+        .capsule-btn.active {
+            background-color: var(--bg-card);
+            color: var(--primary);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
+
 <body>
 
     <header>
         <div class="brand">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            </svg>
             PT <span>Gen</span>
         </div>
         <button class="theme-toggle" id="themeToggle" title="切换模式">
-            <svg id="icon-sun" class="hidden" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
-            <svg id="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            <svg id="icon-sun" class="hidden" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+            <svg id="icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
         </button>
     </header>
 
@@ -287,26 +481,42 @@
                     <input type="text" id="searchInput" placeholder="输入 链接 (http...) 或 关键词 (如: 肖申克的救赎)">
                 </div>
                 <button class="btn" id="queryBtn">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
                     查询
                 </button>
                 <button class="btn btn-secondary settings-btn" id="settingsBtn" title="API Key 设置">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+                        </path>
+                    </svg>
                 </button>
             </div>
 
             <div class="result-area">
                 <div class="result-header">
-                    <span class="result-title" id="resultTitle">生成结果</span>
-                    <button class="btn btn-secondary" id="copyBtn" style="padding: 6px 12px; font-size: 0.9rem;">复制</button>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <span class="result-title" id="resultTitle">生成结果</span>
+                        <div class="capsule-group" id="formatGroup">
+                            <button class="capsule-btn active" data-format="bbcode">BBCode</button>
+                            <button class="capsule-btn" data-format="markdown">Markdown</button>
+                            <button class="capsule-btn" data-format="json">RAW JSON</button>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" id="copyBtn"
+                        style="padding: 6px 12px; font-size: 0.9rem;">复制</button>
                 </div>
-                
+
                 <div id="textResultContainer">
                     <textarea id="resultOutput" placeholder="这里将显示生成的简介信息..." readonly></textarea>
                 </div>
 
                 <div id="searchListContainer" class="search-list hidden">
-                    </div>
+                </div>
             </div>
         </div>
 
@@ -324,10 +534,18 @@
                 </ol>
                 <p style="margin-bottom: 0.5rem;"><strong style="color: var(--text-main);">支持的链接格式:</strong></p>
                 <ul style="padding-left: 1.5rem; list-style: disc;">
-                    <li>豆瓣: <code style="background: var(--input-bg); padding: 2px 6px; border-radius: 4px;">https://movie.douban.com/subject/...</code></li>
-                    <li>IMDb: <code style="background: var(--input-bg); padding: 2px 6px; border-radius: 4px;">https://www.imdb.com/title/tt...</code></li>
-                    <li>Bangumi: <code style="background: var(--input-bg); padding: 2px 6px; border-radius: 4px;">https://bgm.tv/subject/...</code></li>
-                    <li>TMDB: <code style="background: var(--input-bg); padding: 2px 6px; border-radius: 4px;">https://www.themoviedb.org/...</code></li>
+                    <li>豆瓣: <code
+                            style="background: var(--input-bg); padding: 2px 6px; border-radius: 4px;">https://movie.douban.com/subject/...</code>
+                    </li>
+                    <li>IMDb: <code
+                            style="background: var(--input-bg); padding: 2px 6px; border-radius: 4px;">https://www.imdb.com/title/tt...</code>
+                    </li>
+                    <li>Bangumi: <code
+                            style="background: var(--input-bg); padding: 2px 6px; border-radius: 4px;">https://bgm.tv/subject/...</code>
+                    </li>
+                    <li>TMDB: <code
+                            style="background: var(--input-bg); padding: 2px 6px; border-radius: 4px;">https://www.themoviedb.org/...</code>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -344,15 +562,18 @@
                     </a>
                 </li>
                 <li>
-                    <a href="https://greasyfork.org/zh-CN/scripts/329484-%E8%B1%86%E7%93%A3%E8%B5%84%E6%BA%90%E4%B8%8B%E8%BD%BD%E5%A4%A7%E5%B8%88-1%E7%A7%92%E6%90%9E%E5%AE%9A%E8%B1%86%E7%93%A3%E7%94%B5%E5%BD%B1-%E9%9F%B3%E4%B9%90-%E5%9B%BE%E4%B9%A6%E4%B8%8B%E8%BD%BD" target="_blank">
+                    <a href="https://greasyfork.org/zh-CN/scripts/329484-%E8%B1%86%E7%93%A3%E8%B5%84%E6%BA%90%E4%B8%8B%E8%BD%BD%E5%A4%A7%E5%B8%88-1%E7%A7%92%E6%90%9E%E5%AE%9A%E8%B1%86%E7%93%A3%E7%94%B5%E5%BD%B1-%E9%9F%B3%E4%B9%90-%E5%9B%BE%E4%B9%A6%E4%B8%8B%E8%BD%BD"
+                        target="_blank">
                         豆瓣资源下载大师
-                        <div style="font-size: 0.8rem; color: var(--text-sub); margin-top: 4px;">一键获取豆瓣电影、音乐、图书资源信息</div>
+                        <div style="font-size: 0.8rem; color: var(--text-sub); margin-top: 4px;">一键获取豆瓣电影、音乐、图书资源信息
+                        </div>
                     </a>
                 </li>
                 <li>
                     <a href="https://git.io/fjm3l" target="_blank">
                         Bangumi Info Export
-                        <div style="font-size: 0.8rem; color: var(--text-sub); margin-top: 4px;">导出 Bangumi 番组信息的脚本</div>
+                        <div style="font-size: 0.8rem; color: var(--text-sub); margin-top: 4px;">导出 Bangumi 番组信息的脚本
+                        </div>
                     </a>
                 </li>
             </ul>
@@ -391,11 +612,36 @@
             themeToggle: document.getElementById('themeToggle'),
             iconSun: document.getElementById('icon-sun'),
             iconMoon: document.getElementById('icon-moon'),
-            resultTitle: document.getElementById('resultTitle')
+            resultTitle: document.getElementById('resultTitle'),
+            formatGroup: document.getElementById('formatGroup')
         };
+
+        // Format Switch Listeners
+        document.querySelectorAll('.capsule-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const fmt = btn.getAttribute('data-format');
+                switchFormat(fmt);
+            });
+        });
+
+        // Helper to get currently active format
+        function getCurrentFormat() {
+            const activeBtn = document.querySelector('.capsule-btn.active');
+            return activeBtn ? activeBtn.getAttribute('data-format') : 'bbcode';
+        }
 
         // State
         let apiKey = localStorage.getItem('APIKEY') || '';
+        let savedFormat = localStorage.getItem('info_format') || 'bbcode';
+
+        // Init Format Selection
+        document.querySelectorAll('.capsule-btn').forEach(btn => {
+            if (btn.getAttribute('data-format') === savedFormat) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
 
         // --- Theme Handling ---
         function setTheme(isDark) {
@@ -452,6 +698,8 @@
 
         // --- Business Logic ---
 
+        let currentData = null;
+
         async function handleQuery(directUrl = null) {
             const inputVal = directUrl || els.searchInput.value.trim();
             if (!inputVal) {
@@ -461,14 +709,15 @@
 
             setLoading(true);
             els.resultOutput.value = "";
-            
+            currentData = null;
+
             // Logic Switch
             const isDirect = /^http/i.test(inputVal);
             const source = els.sourceSelect.value;
-            
+
             let apiUrl = "/";
             const params = new URLSearchParams();
-            
+
             if (apiKey) params.append('apikey', apiKey);
 
             if (isDirect) {
@@ -477,7 +726,7 @@
                 params.append('search', inputVal);
                 params.append('source', source);
             }
-            
+
             apiUrl += `?${params.toString()}`;
 
             try {
@@ -504,7 +753,17 @@
                     // Direct Mode: Show Text
                     els.textContainer.classList.remove('hidden');
                     els.listContainer.classList.add('hidden');
-                    els.resultOutput.value = data.format;
+
+                    // Save data for switching
+                    currentData = data;
+
+                    // Show Format Buttons if available matches
+                    if (data.formats) {
+                        switchFormat(getCurrentFormat());
+                    } else {
+                        els.resultOutput.value = data.format;
+                    }
+
                     els.resultTitle.innerText = "生成结果";
                     els.copyBtn.style.display = 'inline-flex';
                 } else {
@@ -519,15 +778,32 @@
             }
         }
 
+        function switchFormat(fmt) {
+            // Update UI State always
+            document.querySelectorAll('.capsule-btn').forEach(btn => {
+                const f = btn.getAttribute('data-format');
+                if (f === fmt) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+
+            // Persist
+            localStorage.setItem('info_format', fmt);
+
+            // Update Text if data exists
+            if (currentData && currentData.formats) {
+                els.resultOutput.value = currentData.formats[fmt] || currentData.format || '';
+            }
+        }
+
         function renderSearchList(items) {
             els.textContainer.classList.add('hidden');
             els.listContainer.classList.remove('hidden');
             els.copyBtn.style.display = 'none';
             els.resultTitle.innerText = `搜索结果 (${items.length})`;
-            
+
             els.listContainer.innerHTML = '';
 
-            if(items.length === 0) {
+            if (items.length === 0) {
                 els.listContainer.innerHTML = '<div style="text-align:center; padding:2rem; color:var(--text-sub)">未找到相关结果</div>';
                 return;
             }
@@ -553,15 +829,15 @@
         // --- Event Listeners ---
 
         els.queryBtn.addEventListener('click', () => handleQuery());
-        
+
         els.searchInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') handleQuery();
         });
 
         els.settingsBtn.addEventListener('click', () => toggleModal(true));
-        
+
         els.closeModalBtn.addEventListener('click', () => toggleModal(false));
-        
+
         els.saveApiKeyBtn.addEventListener('click', () => {
             apiKey = els.apiKeyInput.value.trim();
             localStorage.setItem('APIKEY', apiKey);
@@ -595,4 +871,5 @@
 
     </script>
 </body>
+
 </html>

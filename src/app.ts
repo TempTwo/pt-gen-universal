@@ -5,6 +5,7 @@ import debug_get_err from '../lib/utils/error';
 
 import { Orchestrator } from '../lib/orchestrator';
 import { BBCodeFormatter } from '../lib/formatters/bbcode';
+import { MarkdownFormatter } from '../lib/formatters/markdown';
 import { AppConfig } from '../lib/types/config';
 
 // 读取 HTML 页面（兼容 Node.js 和 CF Workers）
@@ -250,15 +251,21 @@ export function createApp(storage: any, config: AppConfig = {}) {
       // 1. Get Normalized Info
       const info = await orchestrator.getMediaInfo(site, sid)
 
-      // 2. Format with BBCode
+      // 2. Format with BBCode and Markdown
       const bbcode = bbcodeFormatter.format(info)
+      const markdown = new MarkdownFormatter().format(info);
 
       // 3. Construct legacy response
       const data = {
         sid: sid,
         success: true,
         ...info,
-        format: bbcode,
+        format: bbcode, // Legacy Default
+        formats: {
+          bbcode: bbcode,
+          markdown: markdown,
+          json: JSON.stringify(info, null, 2)
+        },
         // Legacy extra fields (best effort compatibility)
         link: info.link || ``,
       }
