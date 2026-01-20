@@ -1,0 +1,195 @@
+import { Context } from 'hono';
+import { Orchestrator } from '../../lib/orchestrator';
+import { AppConfig } from '../../lib/types/config';
+import { AppError, ErrorCode } from '../../lib/errors';
+import { API_VERSION, SCHEMA_VERSION, PARSER_VERSION, SOURCE_FINGERPRINTS } from '../../lib/constants/version';
+import { ApiV2SuccessResponse } from '../../lib/types/api_v2';
+import { BBCodeFormatter } from '../../lib/formatters/bbcode';
+import { MarkdownFormatter } from '../../lib/formatters/markdown';
+import { NONE_EXIST_ERROR } from '../../lib/utils/error';
+
+export class V2Controller {
+    private bbcodeFormatter: BBCodeFormatter;
+    private markdownFormatter: MarkdownFormatter;
+
+    constructor(private orchestrator: Orchestrator, private config: AppConfig) {
+        this.bbcodeFormatter = new BBCodeFormatter();
+        this.markdownFormatter = new MarkdownFormatter();
+    }
+
+    async handleInfo(c: Context) {
+        let url: string | undefined;
+        let site: string | undefined;
+        let sid: string | undefined;
+        let format = 'bbcode';
+
+        // 1. Try to get params from POST body
+        if (c.req.method === 'POST') {
+            try {
+                const body = await c.req.json();
+                url = body.url;
+                site = body.site;
+                sid = body.sid;
+                if (typeof body.format === 'string') format = body.format;
+            } catch (e) {
+                // Invalid JSON body
+                throw new AppError(ErrorCode.INVALID_PARAM, "Invalid JSON body");
+            }
+        }
+
+        // 2. Try to get params from Path (RESTful)
+        const pathSite = c.req.param('site');
+        const pathSid = c.req.param('sid');
+        if (pathSite && pathSid) {
+            site = pathSite;
+            sid = pathSid;
+        }
+
+        // 3. Fallback to Query Params
+        if (!url && !site && !sid) {
+            url = c.req.query('url');
+            const queryFormat = c.req.query('format');
+            if (queryFormat) format = queryFormat; // Query overrides default
+        }
+
+        // Validation
+        if (!url && (!site || !sid)) {
+            throw new AppError(ErrorCode.INVALID_PARAM, "Missing 'url' or 'site/sid' parameters");
+        }
+
+        try {
+            // Resolve Site/SID if URL is provided
+            if (url) {
+                const parsed = this.parseUrl(url);
+                site = parsed.site;
+                sid = parsed.sid;
+            }
+
+            // At this point, site and sid MUST be defined
+            if (!site || !sid) {
+                throw new AppError(ErrorCode.INVALID_PARAM, "Could not resolve site/sid");
+            }
+
+            const info = await this.orchestrator.getMediaInfo(site, sid);
+
+            // Generate format output if requested
+            const validFormat = typeof format === 'string' ? format.toLowerCase() : 'bbcode';
+            let formatOutput: string | undefined;
+
+            if (validFormat === 'bbcode' || validFormat === 'markdown') {
+                if (validFormat === 'bbcode') {
+                    formatOutput = this.bbcodeFormatter.format(info);
+                } else {
+                    formatOutput = this.markdownFormatter.format(info);
+                }
+            }
+
+            const response: ApiV2SuccessResponse = {
+                versions: {
+                    schema: SCHEMA_VERSION,
+                    parser: PARSER_VERSION,
+                    source_fingerprint: SOURCE_FINGERPRINTS[site] || 'unknown'
+                },
+                meta: {
+                    api_version: API_VERSION,
+                    generated_at_ms: Date.now(),
+                    source_url: url,
+                },
+                data: {
+                    ...info,
+                    format: formatOutput // Will be undefined if format=json
+                }
+            };
+
+            return c.json(response);
+        } catch (e: any) {
+            // Rethrow AppErrors, wrap others
+            if (e instanceof AppError) throw e;
+
+            const message = typeof e?.message === 'string' ? e.message : 'Unknown error';
+            throw this.mapError(message);
+        }
+    }
+
+    async handleSearch(c: Context) {
+        const query = c.req.query('q');
+        const source = c.req.query('source') || 'douban';
+
+        if (!query) {
+            throw new AppError(ErrorCode.INVALID_PARAM, "Missing 'q' parameter");
+        }
+
+        try {
+            const results = await this.orchestrator.search(source, query);
+
+            const response: ApiV2SuccessResponse = {
+                versions: {
+                    schema: SCHEMA_VERSION,
+                    parser: PARSER_VERSION,
+                    source_fingerprint: SOURCE_FINGERPRINTS[source] || 'unknown'
+                },
+                meta: {
+                    api_version: API_VERSION,
+                    generated_at_ms: Date.now(),
+                    // source_url: N/A
+                },
+                data: results
+            };
+            return c.json(response);
+
+        } catch (e: any) {
+            if (e instanceof AppError) throw e;
+            const message = typeof e?.message === 'string' ? e.message : 'Unknown error';
+            throw this.mapError(message);
+        }
+    }
+
+    private parseUrl(url: string): { site: string, sid: string } {
+        // TODO: Import support_list from a shared location or duplicate it.
+        return matchUrl(url);
+    }
+
+    private mapError(message: string): AppError {
+        const normalized = message.toLowerCase();
+
+        if (message === NONE_EXIST_ERROR || normalized.includes('not found')) {
+            return new AppError(ErrorCode.TARGET_NOT_FOUND, message);
+        }
+        if (normalized.includes('timeout')) {
+            return new AppError(ErrorCode.TARGET_TIMEOUT, message);
+        }
+        if (
+            normalized.includes('sec.douban.com') ||
+            normalized.includes('anti-bot') ||
+            normalized.includes('captcha')
+        ) {
+            return new AppError(ErrorCode.TARGET_BLOCKING, message);
+        }
+
+        return new AppError(ErrorCode.INTERNAL_ERROR, message);
+    }
+}
+
+// Helper for URL matching (Temporary, should come from shared config)
+const support_list: Record<string, RegExp> = {
+    "douban": /(?:https?:\/\/)?(?:(?:movie|www|m)\.)?douban\.com\/(?:(?:movie\/)?subject|movie)\/(\d+)\/?/,
+    "imdb": /(?:https?:\/\/)?(?:www\.)?imdb\.com\/title\/(tt\d+)\/?/,
+    "bangumi": /(?:https?:\/\/)?(?:bgm\.tv|bangumi\.tv|chii\.in)\/subject\/(\d+)\/?/,
+    "steam": /(?:https?:\/\/)?(?:store\.)?steam(?:powered|community)\.com\/app\/(\d+)\/?/,
+    "indienova": /(?:https?:\/\/)?indienova\.com\/(?:game|g)\/(\S+)/,
+    "gog": /(?:https?:\/\/)?(?:www\.)?gog\.com\/(?:[a-z]{2}(?:-[A-Z]{2})?\/)?game\/([\w-]+)/,
+    "tmdb": /(?:https?:\/\/)?(?:www\.)?themoviedb\.org\/(?:(movie|tv))\/(\d+)\/?/
+};
+
+function matchUrl(url: string): { site: string, sid: string } {
+    for (const [site, pattern] of Object.entries(support_list)) {
+        const match = url.match(pattern)
+        if (match) {
+            const sid = site === 'tmdb'
+                ? `${match[1]}-${match[2]}`
+                : match[1]
+            return { site, sid };
+        }
+    }
+    throw new AppError(ErrorCode.INVALID_PARAM, "Unsupported URL");
+}

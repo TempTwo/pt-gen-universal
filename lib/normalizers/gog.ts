@@ -146,7 +146,9 @@ export class GogNormalizer implements Normalizer {
             },
 
             extra: {
+                platforms: platforms,
                 sysreq: systemRequirements,
+                system_requirements: systemRequirements,
                 price: price
             }
         };

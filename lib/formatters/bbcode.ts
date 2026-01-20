@@ -33,19 +33,25 @@ export class BBCodeFormatter implements Formatter {
         const playdate = ensureArray(data?.playdate).filter(Boolean);
 
         // Ratings & Links
-        const imdb_rating = data.imdb_rating_average
-            ? `${data.imdb_rating_average}/10 from ${data.imdb_votes || 0} users`
-            : '';
+        const imdb_rating = data.imdb_rating
+            ? String(data.imdb_rating)
+            : data.imdb_rating_average
+                ? `${data.imdb_rating_average}/10 from ${data.imdb_votes || 0} users`
+                : '';
         const imdb_link = String(data?.imdb_link || '');
 
-        const douban_rating = data.douban_rating_average
-            ? `${data.douban_rating_average}/10 from ${data.douban_votes || 0} users`
-            : '';
+        const douban_rating = data.douban_rating
+            ? String(data.douban_rating)
+            : data.douban_rating_average
+                ? `${data.douban_rating_average}/10 from ${data.douban_votes || 0} users`
+                : '';
         const douban_link = String(data?.douban_link || '');
 
-        const tmdb_rating = data.tmdb_rating_average
-            ? `${data.tmdb_rating_average}/10 from ${data.tmdb_votes || 0} users`
-            : '';
+        const tmdb_rating = data.tmdb_rating
+            ? String(data.tmdb_rating)
+            : data.tmdb_rating_average
+                ? `${data.tmdb_rating_average}/10 from ${data.tmdb_votes || 0} users`
+                : '';
         const tmdb_link = String(data?.tmdb_link || '');
 
         // Bangumi specific

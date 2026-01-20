@@ -6,14 +6,16 @@ import { SearchResult } from '../types/schema';
 import { fetchWithTimeout } from '../utils/fetch';
 import { NONE_EXIST_ERROR } from '../utils/error';
 
+const DEFAULT_TIMEOUT_MS = 10_000;
+
 export class GogScraper implements Scraper {
-    private async resolveGogId(sid: string): Promise<string> {
+    private async resolveGogId(sid: string, timeoutMs: number): Promise<string> {
         if (/^\d+$/.test(sid)) {
             return sid;
         }
 
         const url = `https://catalog.gog.com/v1/catalog?query=${encodeURIComponent(sid)}`;
-        const response = await fetchWithTimeout(url);
+        const response = await fetchWithTimeout(url, {}, timeoutMs);
 
         if (!response.ok) {
             throw new Error(`GOG Catalog API returned status ${response.status}`);
@@ -33,15 +35,19 @@ export class GogScraper implements Scraper {
     }
 
     async fetch(id: string, config: AppConfig): Promise<GogRawData> {
+        const timeoutMs =
+            config.timeout ??
+            config.doubanTimeoutMs ??
+            DEFAULT_TIMEOUT_MS;
         let gogId: string;
         try {
-            gogId = await this.resolveGogId(id);
+            gogId = await this.resolveGogId(id, timeoutMs);
         } catch (e: any) {
             throw new Error(e.message || NONE_EXIST_ERROR);
         }
 
         const apiUrl = `https://api.gog.com/products/${gogId}?expand=description,screenshots,videos`;
-        const apiResp = await fetchWithTimeout(apiUrl);
+        const apiResp = await fetchWithTimeout(apiUrl, {}, timeoutMs);
 
         if (apiResp.status === 404) {
             throw new Error(NONE_EXIST_ERROR);
@@ -60,7 +66,7 @@ export class GogScraper implements Scraper {
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
                 }
-            }, config.doubanTimeoutMs || 10000); // reuse config
+            }, timeoutMs);
 
             if (pageResp.ok) {
                 storeHtml = await pageResp.text();
@@ -78,9 +84,13 @@ export class GogScraper implements Scraper {
     }
 
     async search(query: string, config: AppConfig): Promise<SearchResult[]> {
+        const timeoutMs =
+            config.timeout ??
+            config.doubanTimeoutMs ??
+            DEFAULT_TIMEOUT_MS;
         const url = `https://catalog.gog.com/v1/catalog?query=${encodeURIComponent(query)}`;
         try {
-            const response = await fetchWithTimeout(url);
+            const response = await fetchWithTimeout(url, {}, timeoutMs);
             if (response.ok) {
                 const json = await response.json();
                 if (json.products) {

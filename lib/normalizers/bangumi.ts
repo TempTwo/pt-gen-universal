@@ -139,6 +139,9 @@ export class BangumiNormalizer implements Normalizer {
             awards: '',
             tags: tags,
 
+            bangumi_rating_average: rating,
+            bangumi_votes: votes,
+
             extra: {
                 info_map: infoMap,
                 staff: staff,

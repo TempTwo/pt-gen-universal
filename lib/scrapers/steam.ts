@@ -6,8 +6,14 @@ import { SearchResult } from '../types/schema';
 import { fetchWithTimeout } from '../utils/fetch';
 import { NONE_EXIST_ERROR } from '../utils/error';
 
+const DEFAULT_TIMEOUT_MS = 10_000;
+
 export class SteamScraper implements Scraper {
     async fetch(id: string, config: AppConfig): Promise<SteamRawData> {
+        const timeoutMs =
+            config.timeout ??
+            config.doubanTimeoutMs ??
+            DEFAULT_TIMEOUT_MS;
         const steamUrl = `https://store.steampowered.com/app/${id}/?l=schinese`;
 
         // Use cookies to bypass age check and force language
@@ -16,8 +22,8 @@ export class SteamScraper implements Scraper {
         };
 
         const [pageResp, steamCnResp] = await Promise.all([
-            fetchWithTimeout(steamUrl, { headers, redirect: 'manual' }, config.doubanTimeoutMs || 10000),
-            fetchWithTimeout(`https://steamdb.keylol.com/app/${id}/data.js?v=38`)
+            fetchWithTimeout(steamUrl, { headers, redirect: 'manual' }, timeoutMs),
+            fetchWithTimeout(`https://steamdb.keylol.com/app/${id}/data.js?v=38`, {}, timeoutMs)
         ]);
 
         if (pageResp.status === 302) {
@@ -69,9 +75,13 @@ export class SteamScraper implements Scraper {
     }
 
     async search(query: string, config: AppConfig): Promise<SearchResult[]> {
+        const timeoutMs =
+            config.timeout ??
+            config.doubanTimeoutMs ??
+            DEFAULT_TIMEOUT_MS;
         const url = `https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(query)}&l=schinese&cc=CN`;
         try {
-            const response = await fetchWithTimeout(url);
+            const response = await fetchWithTimeout(url, {}, timeoutMs);
             if (response.ok) {
                 const json = await response.json();
                 if (json.items) {

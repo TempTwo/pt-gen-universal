@@ -96,7 +96,9 @@ describe('TMDB POC Integration', () => {
         expect(results[0].id).toBe('movie-101');
 
         expect(fetchSpy).toHaveBeenCalledWith(
-            expect.stringContaining('/search/multi')
+            expect.stringContaining('/search/multi'),
+            expect.anything(),
+            expect.anything()
         );
     });
 });

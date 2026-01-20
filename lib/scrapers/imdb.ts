@@ -8,6 +8,8 @@ import { NONE_EXIST_ERROR } from '../utils/error';
 import * as cheerio from 'cheerio';
 // import { pageParser } from '../utils/html'; // Use existing utility if available
 
+const DEFAULT_TIMEOUT_MS = 10_000;
+
 export class ImdbScraper implements Scraper {
     async fetch(id: string, config: AppConfig): Promise<ImdbRawData> {
         let imdbId = id;
@@ -18,15 +20,21 @@ export class ImdbScraper implements Scraper {
         imdbId = "tt" + imdbId.padStart(7, "0");
         const imdbUrl = `https://www.imdb.com/title/${imdbId}/`;
 
+        const timeoutMs =
+            config.imdbTimeoutMs ??
+            config.timeout ??
+            config.doubanTimeoutMs ??
+            DEFAULT_TIMEOUT_MS;
+
         const headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "User-Agent": config.imdbUserAgent || "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept-Language": "en-US,en;q=0.9"
         };
 
         // Fetch Main Page and Release Info Page concurrently
         const [mainResp, releaseResp] = await Promise.all([
-            fetchWithTimeout(imdbUrl, { headers }, config.doubanTimeoutMs || 10000),
-            fetchWithTimeout(`${imdbUrl}releaseinfo`, { headers }, config.doubanTimeoutMs || 10000)
+            fetchWithTimeout(imdbUrl, { headers }, timeoutMs),
+            fetchWithTimeout(`${imdbUrl}releaseinfo`, { headers }, timeoutMs)
         ]);
 
         if (!mainResp.ok) {
@@ -116,10 +124,22 @@ export class ImdbScraper implements Scraper {
     }
 
     async search(query: string, config: AppConfig): Promise<SearchResult[]> {
+        const timeoutMs =
+            config.imdbTimeoutMs ??
+            config.timeout ??
+            config.doubanTimeoutMs ??
+            DEFAULT_TIMEOUT_MS;
+        const headers = config.imdbUserAgent
+            ? { "User-Agent": config.imdbUserAgent }
+            : undefined;
         const q = query.toLowerCase();
         const url = `https://v2.sg.media-imdb.com/suggestion/${encodeURIComponent(q.slice(0, 1))}/${encodeURIComponent(q)}.json`;
 
-        const response = await fetchWithTimeout(url);
+        const response = await fetchWithTimeout(
+            url,
+            headers ? { headers } : {},
+            timeoutMs
+        );
         if (!response.ok) {
             throw new Error(`IMDb search request failed: ${response.status}`);
         }

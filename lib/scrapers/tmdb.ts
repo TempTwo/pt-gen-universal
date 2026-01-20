@@ -6,12 +6,25 @@ import { SearchResult } from '../types/schema';
 import { fetchWithTimeout } from '../utils/fetch';
 import { NONE_EXIST_ERROR } from '../utils/error';
 
+const DEFAULT_TIMEOUT_MS = 10_000;
+
 export class TmdbScraper implements Scraper {
     async fetch(id: string, config: AppConfig): Promise<TmdbRawData> {
         const apiKey = config.tmdbApiKey;
         if (!apiKey) {
             throw new Error("TMDB API key is required. Please set TMDB_API_KEY.");
         }
+
+        const timeoutMs =
+            config.tmdbTimeoutMs ??
+            config.timeout ??
+            config.doubanTimeoutMs ??
+            DEFAULT_TIMEOUT_MS;
+        const headers: Record<string, string> = {};
+        if (config.tmdbUserAgent) {
+            headers['User-Agent'] = config.tmdbUserAgent;
+        }
+        const requestInit = Object.keys(headers).length > 0 ? { headers } : {};
 
         let mediaType = 'movie';
         let tmdbId = id;
@@ -42,7 +55,7 @@ export class TmdbScraper implements Scraper {
 
         const url = `https://api.themoviedb.org/3/${mediaType}/${tmdbId}?api_key=${apiKey}&language=zh-CN&append_to_response=credits,external_ids,images,keywords,release_dates,content_ratings,videos,alternative_titles`;
 
-        const response = await fetchWithTimeout(url, {}, config.doubanTimeoutMs || 10000);
+        const response = await fetchWithTimeout(url, requestInit, timeoutMs);
 
         if (!response.ok) {
             // Check for 404
@@ -74,8 +87,19 @@ export class TmdbScraper implements Scraper {
             throw new Error("TMDB API key is required.");
         }
 
+        const timeoutMs =
+            config.tmdbTimeoutMs ??
+            config.timeout ??
+            config.doubanTimeoutMs ??
+            DEFAULT_TIMEOUT_MS;
+        const headers: Record<string, string> = {};
+        if (config.tmdbUserAgent) {
+            headers['User-Agent'] = config.tmdbUserAgent;
+        }
+        const requestInit = Object.keys(headers).length > 0 ? { headers } : {};
+
         const url = `https://api.themoviedb.org/3/search/multi?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=zh-CN`;
-        const response = await fetchWithTimeout(url);
+        const response = await fetchWithTimeout(url, requestInit, timeoutMs);
 
         if (!response.ok) {
             throw new Error(`TMDB Search failed: ${response.status}`);

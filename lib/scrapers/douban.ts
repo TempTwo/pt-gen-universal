@@ -6,6 +6,7 @@ import { normalizeCookie, mergeCookies } from '../utils/string';
 import { fetchWithTimeout } from '../utils/fetch';
 import { rateLimiter } from '../utils/rate-limiter';
 import { pageParser } from '../utils/html';
+import { NONE_EXIST_ERROR } from '../utils/error';
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 const DEFAULT_WARMUP_TIMEOUT_MS = 4_000;
@@ -15,7 +16,10 @@ const HAS_GETSETCOOKIE =
 
 export class DoubanScraper implements Scraper {
     async fetch(id: string, config: AppConfig): Promise<DoubanRawData> {
-        const timeoutMs = config.doubanTimeoutMs || DEFAULT_TIMEOUT_MS;
+        const timeoutMs =
+            config.doubanTimeoutMs ??
+            config.timeout ??
+            DEFAULT_TIMEOUT_MS;
         const baseHeaders = this.buildHeaders(config);
         const cfgCookie = normalizeCookie(config.doubanCookie);
         const bid = /(?:^|;\s*)bid=/.test(cfgCookie)
@@ -27,21 +31,11 @@ export class DoubanScraper implements Scraper {
             : baseHeaders;
 
         const doubanLink = `https://movie.douban.com/subject/${id}/`;
-        const { html, blocked } = await this.fetchSubjectHtml(
+        const { html, blocked, status } = await this.fetchSubjectHtml(
             id,
             headers,
             timeoutMs
         );
-
-        if (!html) {
-            return {
-                site: 'douban',
-                sid: id,
-                success: false,
-                error:
-                    'Failed to fetch Douban page (network error/timeout). If you are self-hosting in a restricted network, consider setting DOUBAN_COOKIE.',
-            };
-        }
 
         if (blocked) {
             return {
@@ -50,6 +44,18 @@ export class DoubanScraper implements Scraper {
                 success: false,
                 error:
                     'Blocked by Douban anti-bot (sec.douban.com). Try setting DOUBAN_COOKIE or switching to Cloudflare Workers/Bun runtime.',
+            };
+        }
+
+        if (!html) {
+            return {
+                site: 'douban',
+                sid: id,
+                success: false,
+                error:
+                    status === 404
+                        ? NONE_EXIST_ERROR
+                        : 'Failed to fetch Douban page (network error/timeout). If you are self-hosting in a restricted network, consider setting DOUBAN_COOKIE.',
             };
         }
 
@@ -101,7 +107,10 @@ export class DoubanScraper implements Scraper {
     }
 
     async search(query: string, config: AppConfig): Promise<SearchResult[]> {
-        const timeoutMs = config.doubanTimeoutMs || DEFAULT_TIMEOUT_MS;
+        const timeoutMs =
+            config.doubanTimeoutMs ??
+            config.timeout ??
+            DEFAULT_TIMEOUT_MS;
         const baseHeaders = this.buildHeaders(config);
         const cfgCookie = normalizeCookie(config.doubanCookie);
         const bid = /(?:^|;\s*)bid=/.test(cfgCookie)
@@ -166,7 +175,9 @@ export class DoubanScraper implements Scraper {
             const timeoutMs =
                 config.doubanWarmupTimeoutMs ||
                 Math.min(
-                    config.doubanTimeoutMs || DEFAULT_TIMEOUT_MS,
+                    config.doubanTimeoutMs ??
+                    config.timeout ??
+                    DEFAULT_TIMEOUT_MS,
                     DEFAULT_WARMUP_TIMEOUT_MS
                 );
 
@@ -203,37 +214,41 @@ export class DoubanScraper implements Scraper {
         sid: string,
         headers: Record<string, string>,
         timeoutMs: number
-    ): Promise<{ html: string; blocked: boolean; url: string }> {
+    ): Promise<{ html: string; blocked: boolean; url: string; status?: number }> {
         const candidateUrls = [
             `https://movie.douban.com/subject/${sid}/`,
             `https://m.douban.com/movie/subject/${sid}/`,
         ];
 
-        let lastResp: Response | null = null;
-        let lastText = '';
+        let blocked = false;
+        let lastStatus: number | undefined;
 
         for (const url of candidateUrls) {
             try {
                 await rateLimiter.acquire('douban', 3000);
                 const resp = await fetchWithTimeout(url, { headers }, timeoutMs);
                 const text = await resp.text();
-                lastResp = resp;
-                lastText = text;
 
-                if (!this.looksLikeSecChallenge(resp, text)) {
-                    return { html: text, blocked: false, url };
+                if (this.looksLikeSecChallenge(resp, text)) {
+                    blocked = true;
+                    continue;
                 }
+
+                if (resp.ok) {
+                    return { html: text, blocked: false, url, status: resp.status };
+                }
+
+                lastStatus = resp.status;
             } catch {
-                lastResp = null;
-                lastText = '';
+                continue;
             }
         }
 
-        const blocked = !!lastText && this.looksLikeSecChallenge(lastResp, lastText);
         return {
-            html: lastText,
+            html: '',
             blocked,
             url: candidateUrls[candidateUrls.length - 1],
+            status: lastStatus,
         };
     }
 

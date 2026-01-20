@@ -6,8 +6,14 @@ import { SearchResult } from '../types/schema';
 import { fetchWithTimeout } from '../utils/fetch';
 import { NONE_EXIST_ERROR } from '../utils/error';
 
+const DEFAULT_TIMEOUT_MS = 10_000;
+
 export class IndienovaScraper implements Scraper {
     async fetch(id: string, config: AppConfig): Promise<IndienovaRawData> {
+        const timeoutMs =
+            config.timeout ??
+            config.doubanTimeoutMs ??
+            DEFAULT_TIMEOUT_MS;
         const url = `https://indienova.com/game/${id}`;
 
         const headers: any = {};
@@ -15,7 +21,7 @@ export class IndienovaScraper implements Scraper {
             headers['Cookie'] = config.indienovaCookie;
         }
 
-        const response = await fetchWithTimeout(url, { headers }, config.doubanTimeoutMs || 10000);
+        const response = await fetchWithTimeout(url, { headers }, timeoutMs);
 
         const html = await response.text();
         if (html.includes('出现错误')) {

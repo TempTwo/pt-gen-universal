@@ -164,6 +164,9 @@ export class DoubanNormalizer implements Normalizer {
         info.douban_votes = ldJson['aggregateRating']
             ? ldJson['aggregateRating']['ratingCount']
             : 0;
+        if (info.douban_rating_average) {
+            info.douban_rating = `${info.douban_rating_average}/10 from ${info.douban_votes || 0} users`;
+        }
 
         if (ldJson['image']) {
             info.poster = String(ldJson['image'])
@@ -234,6 +237,9 @@ export class DoubanNormalizer implements Normalizer {
 
         info.douban_rating_average = Number(ratingValue) || 0;
         info.douban_votes = Number(reviewCount) || 0;
+        if (info.douban_rating_average) {
+            info.douban_rating = `${info.douban_rating_average}/10 from ${info.douban_votes || 0} users`;
+        }
 
         const meta = $('.sub-meta').first().text().replace(/\s+/g, ' ').trim();
         const parts = meta ? meta.split(' / ').map((s: string) => s.trim()).filter(Boolean) : [];

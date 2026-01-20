@@ -6,13 +6,19 @@ import { SearchResult } from '../types/schema';
 import { fetchWithTimeout } from '../utils/fetch';
 import { NONE_EXIST_ERROR } from '../utils/error';
 
+const DEFAULT_TIMEOUT_MS = 10_000;
+
 export class BangumiScraper implements Scraper {
     async fetch(id: string, config: AppConfig): Promise<BangumiRawData> {
+        const timeoutMs =
+            config.timeout ??
+            config.doubanTimeoutMs ??
+            DEFAULT_TIMEOUT_MS;
         const bangumiLink = `https://bgm.tv/subject/${id}`;
 
         const [mainResp, charResp] = await Promise.all([
-            fetchWithTimeout(bangumiLink, {}, config.doubanTimeoutMs || 10000),
-            fetchWithTimeout(`${bangumiLink}/characters`, {}, config.doubanTimeoutMs || 10000)
+            fetchWithTimeout(bangumiLink, {}, timeoutMs),
+            fetchWithTimeout(`${bangumiLink}/characters`, {}, timeoutMs)
         ]);
 
         const mainHtml = await mainResp.text();
@@ -35,8 +41,12 @@ export class BangumiScraper implements Scraper {
     }
 
     async search(query: string, config: AppConfig): Promise<SearchResult[]> {
+        const timeoutMs =
+            config.timeout ??
+            config.doubanTimeoutMs ??
+            DEFAULT_TIMEOUT_MS;
         const url = `https://api.bgm.tv/search/subject/${encodeURIComponent(query)}?responseGroup=large`;
-        const response = await fetchWithTimeout(url);
+        const response = await fetchWithTimeout(url, {}, timeoutMs);
 
         if (!response.ok) {
             throw new Error(`Bangumi search failed: ${response.status}`);
