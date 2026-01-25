@@ -37,7 +37,6 @@ export class GogScraper implements Scraper {
     async fetch(id: string, config: AppConfig): Promise<GogRawData> {
         const timeoutMs =
             config.timeout ??
-            config.doubanTimeoutMs ??
             DEFAULT_TIMEOUT_MS;
         let gogId: string;
         try {
@@ -86,7 +85,6 @@ export class GogScraper implements Scraper {
     async search(query: string, config: AppConfig): Promise<SearchResult[]> {
         const timeoutMs =
             config.timeout ??
-            config.doubanTimeoutMs ??
             DEFAULT_TIMEOUT_MS;
         const url = `https://catalog.gog.com/v1/catalog?query=${encodeURIComponent(query)}`;
         try {

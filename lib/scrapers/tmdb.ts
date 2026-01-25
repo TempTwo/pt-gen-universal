@@ -18,7 +18,6 @@ export class TmdbScraper implements Scraper {
         const timeoutMs =
             config.tmdbTimeoutMs ??
             config.timeout ??
-            config.doubanTimeoutMs ??
             DEFAULT_TIMEOUT_MS;
         const headers: Record<string, string> = {};
         if (config.tmdbUserAgent) {
@@ -90,7 +89,6 @@ export class TmdbScraper implements Scraper {
         const timeoutMs =
             config.tmdbTimeoutMs ??
             config.timeout ??
-            config.doubanTimeoutMs ??
             DEFAULT_TIMEOUT_MS;
         const headers: Record<string, string> = {};
         if (config.tmdbUserAgent) {

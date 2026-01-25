@@ -23,7 +23,6 @@ export class ImdbScraper implements Scraper {
         const timeoutMs =
             config.imdbTimeoutMs ??
             config.timeout ??
-            config.doubanTimeoutMs ??
             DEFAULT_TIMEOUT_MS;
 
         const headers = {
@@ -127,7 +126,6 @@ export class ImdbScraper implements Scraper {
         const timeoutMs =
             config.imdbTimeoutMs ??
             config.timeout ??
-            config.doubanTimeoutMs ??
             DEFAULT_TIMEOUT_MS;
         const headers = config.imdbUserAgent
             ? { "User-Agent": config.imdbUserAgent }

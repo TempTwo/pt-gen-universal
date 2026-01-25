@@ -7,6 +7,7 @@ import { ApiV2SuccessResponse } from '../../lib/types/api_v2';
 import { BBCodeFormatter } from '../../lib/formatters/bbcode';
 import { MarkdownFormatter } from '../../lib/formatters/markdown';
 import { NONE_EXIST_ERROR } from '../../lib/utils/error';
+import { matchUrl } from '../../lib/utils/url';
 
 export class V2Controller {
     private bbcodeFormatter: BBCodeFormatter;
@@ -145,7 +146,6 @@ export class V2Controller {
     }
 
     private parseUrl(url: string): { site: string, sid: string } {
-        // TODO: Import support_list from a shared location or duplicate it.
         return matchUrl(url);
     }
 
@@ -168,28 +168,4 @@ export class V2Controller {
 
         return new AppError(ErrorCode.INTERNAL_ERROR, message);
     }
-}
-
-// Helper for URL matching (Temporary, should come from shared config)
-const support_list: Record<string, RegExp> = {
-    "douban": /(?:https?:\/\/)?(?:(?:movie|www|m)\.)?douban\.com\/(?:(?:movie\/)?subject|movie)\/(\d+)\/?/,
-    "imdb": /(?:https?:\/\/)?(?:www\.)?imdb\.com\/title\/(tt\d+)\/?/,
-    "bangumi": /(?:https?:\/\/)?(?:bgm\.tv|bangumi\.tv|chii\.in)\/subject\/(\d+)\/?/,
-    "steam": /(?:https?:\/\/)?(?:store\.)?steam(?:powered|community)\.com\/app\/(\d+)\/?/,
-    "indienova": /(?:https?:\/\/)?indienova\.com\/(?:game|g)\/(\S+)/,
-    "gog": /(?:https?:\/\/)?(?:www\.)?gog\.com\/(?:[a-z]{2}(?:-[A-Z]{2})?\/)?game\/([\w-]+)/,
-    "tmdb": /(?:https?:\/\/)?(?:www\.)?themoviedb\.org\/(?:(movie|tv))\/(\d+)\/?/
-};
-
-function matchUrl(url: string): { site: string, sid: string } {
-    for (const [site, pattern] of Object.entries(support_list)) {
-        const match = url.match(pattern)
-        if (match) {
-            const sid = site === 'tmdb'
-                ? `${match[1]}-${match[2]}`
-                : match[1]
-            return { site, sid };
-        }
-    }
-    throw new AppError(ErrorCode.INVALID_PARAM, "Unsupported URL");
 }

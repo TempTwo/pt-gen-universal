@@ -12,7 +12,6 @@ export class SteamScraper implements Scraper {
     async fetch(id: string, config: AppConfig): Promise<SteamRawData> {
         const timeoutMs =
             config.timeout ??
-            config.doubanTimeoutMs ??
             DEFAULT_TIMEOUT_MS;
         const steamUrl = `https://store.steampowered.com/app/${id}/?l=schinese`;
 
@@ -77,7 +76,6 @@ export class SteamScraper implements Scraper {
     async search(query: string, config: AppConfig): Promise<SearchResult[]> {
         const timeoutMs =
             config.timeout ??
-            config.doubanTimeoutMs ??
             DEFAULT_TIMEOUT_MS;
         const url = `https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(query)}&l=schinese&cc=CN`;
         try {

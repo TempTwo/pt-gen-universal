@@ -4,7 +4,7 @@ import { AppConfig } from '../lib/types/config';
 import { Orchestrator } from '../lib/orchestrator';
 import { V1Controller } from './controllers/v1';
 import { V2Controller } from './controllers/v2';
-import { AppError } from '../lib/errors';
+import { AppError, ErrorCode } from '../lib/errors';
 
 // 读取 HTML 页面（兼容 Node.js 和 CF Workers）
 let page: string = ''
@@ -70,17 +70,36 @@ export function createApp(storage: any, config: AppConfig = {}) {
   // 全局 CORS 中间件
   app.use('*', cors())
 
+  function getRequestApiKey(c: Context): string | undefined {
+    const q = c.req.query('apikey')
+    if (q) return q
+
+    const headerKey = c.req.header('x-api-key') || c.req.header('apikey')
+    if (headerKey) return headerKey
+
+    const auth = c.req.header('authorization')
+    if (!auth) return undefined
+    const m = auth.match(/^Bearer\s+(.+)$/i)
+    return m?.[1]
+  }
+
   // 生成缓存键
   function generateCacheKey(c: Context) {
     const url = new URL(c.req.url)
     url.searchParams.delete('apikey')
     url.searchParams.delete('debug')
-    return url.pathname + url.search
+    // Include method to avoid collisions (even though we only cache GET today).
+    return `${c.req.method}:${url.pathname}${url.search}`
   }
 
   // APIKEY 验证中间件
   app.use('/api/*', async (c, next) => {
-    if (config.apikey && c.req.query('apikey') !== config.apikey) {
+    if (config.apikey && getRequestApiKey(c) !== config.apikey) {
+      const pathname = new URL(c.req.url).pathname
+      // V1 keeps legacy-ish error shape; V2 uses unified AppError schema.
+      if (pathname.startsWith('/api/v2/')) {
+        throw new AppError(ErrorCode.AUTH_FAILED, 'apikey required.')
+      }
       return c.json({ error: 'apikey required.' }, 403)
     }
     await next()
@@ -89,6 +108,8 @@ export function createApp(storage: any, config: AppConfig = {}) {
   // 缓存中间件
   app.use('/api/*', async (c, next) => {
     if (cacheTTL === 0) return next()
+    // Only cache GET. POST (e.g. /api/v2/info JSON body) must never share cache keys.
+    if (c.req.method !== 'GET') return next()
 
     const cacheKey = generateCacheKey(c)
     const cached = await storage.get(cacheKey)

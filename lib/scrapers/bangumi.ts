@@ -12,7 +12,6 @@ export class BangumiScraper implements Scraper {
     async fetch(id: string, config: AppConfig): Promise<BangumiRawData> {
         const timeoutMs =
             config.timeout ??
-            config.doubanTimeoutMs ??
             DEFAULT_TIMEOUT_MS;
         const bangumiLink = `https://bgm.tv/subject/${id}`;
 
@@ -43,7 +42,6 @@ export class BangumiScraper implements Scraper {
     async search(query: string, config: AppConfig): Promise<SearchResult[]> {
         const timeoutMs =
             config.timeout ??
-            config.doubanTimeoutMs ??
             DEFAULT_TIMEOUT_MS;
         const url = `https://api.bgm.tv/search/subject/${encodeURIComponent(query)}?responseGroup=large`;
         const response = await fetchWithTimeout(url, {}, timeoutMs);

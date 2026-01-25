@@ -5,6 +5,7 @@ import { AUTHOR, VERSION } from '../../lib/const';
 import { BBCodeFormatter } from '../../lib/formatters/bbcode';
 import { MarkdownFormatter } from '../../lib/formatters/markdown';
 import debug_get_err from '../../lib/utils/error';
+import { matchUrl } from '../../lib/utils/url';
 
 export class V1Controller {
     private bbcodeFormatter: BBCodeFormatter;
@@ -54,7 +55,7 @@ export class V1Controller {
         if (url) {
             // URL mode
             try {
-                const { site: matchedSite, sid: matchedSid } = this.matchUrl(url);
+                const { site: matchedSite, sid: matchedSid } = matchUrl(url);
                 return this.processInfo(c, matchedSite, matchedSid);
             } catch (e: any) {
                 // V1 returns 400 for unsupported URL
@@ -138,26 +139,4 @@ export class V1Controller {
         };
     }
 
-    private matchUrl(url: string): { site: string, sid: string } {
-        const support_list: Record<string, RegExp> = {
-            "douban": /(?:https?:\/\/)?(?:(?:movie|www|m)\.)?douban\.com\/(?:(?:movie\/)?subject|movie)\/(\d+)\/?/,
-            "imdb": /(?:https?:\/\/)?(?:www\.)?imdb\.com\/title\/(tt\d+)\/?/,
-            "bangumi": /(?:https?:\/\/)?(?:bgm\.tv|bangumi\.tv|chii\.in)\/subject\/(\d+)\/?/,
-            "steam": /(?:https?:\/\/)?(?:store\.)?steam(?:powered|community)\.com\/app\/(\d+)\/?/,
-            "indienova": /(?:https?:\/\/)?indienova\.com\/(?:game|g)\/(\S+)/,
-            "gog": /(?:https?:\/\/)?(?:www\.)?gog\.com\/(?:[a-z]{2}(?:-[A-Z]{2})?\/)?game\/([\w-]+)/,
-            "tmdb": /(?:https?:\/\/)?(?:www\.)?themoviedb\.org\/(?:(movie|tv))\/(\d+)\/?/
-        };
-
-        for (const [site, pattern] of Object.entries(support_list)) {
-            const match = url.match(pattern);
-            if (match) {
-                const sid = site === 'tmdb'
-                    ? `${match[1]}-${match[2]}`
-                    : match[1];
-                return { site, sid };
-            }
-        }
-        throw new Error("No match");
-    }
 }

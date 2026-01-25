@@ -120,6 +120,9 @@ GET /api/v2/info?url=https://movie.douban.com/subject/1292052/
 ```bash
 POST /api/v2/info
 Content-Type: application/json
+# 如果设置了 APIKEY，也可以用 header 传递（推荐用于 POST）
+# X-API-Key: your-api-key
+# Authorization: Bearer your-api-key
 
 {
   "url": "https://movie.douban.com/subject/1292052/",
@@ -298,9 +301,9 @@ INDIENOVA_COOKIE=your-indienova-cookie
 
 | 变量 | 说明 |
 |:---:|:---|
-| `APIKEY` | API 访问密钥，设置后需在请求中添加 `?apikey={APIKEY}` |
+| `APIKEY` | API 访问密钥。可用 query `?apikey={APIKEY}`，或 header `X-API-Key: {APIKEY}` / `Authorization: Bearer {APIKEY}` |
 | `DISABLE_SEARCH` | 设置为 `"true"` 时禁用搜索功能 |
-| `CACHE_TTL` | 缓存过期时间（秒），默认 172800（2天）。设置为 0 禁用缓存 |
+| `CACHE_TTL` | 缓存过期时间（秒），默认 172800（2天）。设置为 0 禁用缓存（仅缓存 GET /api/*） |
 | `TMDB_API_KEY` | TMDB API 密钥，用于访问 TMDB 资源。获取地址：https://www.themoviedb.org/settings/api |
 | `DOUBAN_COOKIE` | 豆瓣 Cookie，用于访问登录可见资源 |
 | `INDIENOVA_COOKIE` | indienova Cookie（[#15](https://github.com/Rhilip/pt-gen-universal/issues/15)） |

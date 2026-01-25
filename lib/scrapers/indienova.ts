@@ -12,7 +12,6 @@ export class IndienovaScraper implements Scraper {
     async fetch(id: string, config: AppConfig): Promise<IndienovaRawData> {
         const timeoutMs =
             config.timeout ??
-            config.doubanTimeoutMs ??
             DEFAULT_TIMEOUT_MS;
         const url = `https://indienova.com/game/${id}`;
 
