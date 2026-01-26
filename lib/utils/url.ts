@@ -6,7 +6,8 @@ const SUPPORT_LIST: Record<string, RegExp> = {
     imdb: /(?:https?:\/\/)?(?:www\.)?imdb\.com\/title\/(tt\d+)\/?/,
     bangumi: /(?:https?:\/\/)?(?:bgm\.tv|bangumi\.tv|chii\.in)\/subject\/(\d+)\/?/,
     steam: /(?:https?:\/\/)?(?:store\.)?steam(?:powered|community)\.com\/app\/(\d+)\/?/,
-    indienova: /(?:https?:\/\/)?indienova\.com\/(?:game|g)\/(\S+)/,
+    // Keep the slug bounded to avoid swallowing extra path/query fragments.
+    indienova: /(?:https?:\/\/)?indienova\.com\/(?:game|g)\/([^/?#]+)(?:[/?#]|$)/,
     gog: /(?:https?:\/\/)?(?:www\.)?gog\.com\/(?:[a-z]{2}(?:-[A-Z]{2})?\/)?game\/([\w-]+)/,
     tmdb: /(?:https?:\/\/)?(?:www\.)?themoviedb\.org\/(?:(movie|tv))\/(\d+)\/?/,
 };
@@ -21,4 +22,3 @@ export function matchUrl(url: string): { site: string; sid: string } {
     }
     throw new AppError(ErrorCode.INVALID_PARAM, 'Unsupported URL');
 }
-

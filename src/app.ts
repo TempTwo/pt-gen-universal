@@ -6,6 +6,12 @@ import { V1Controller } from './controllers/v1';
 import { V2Controller } from './controllers/v2';
 import { AppError, ErrorCode } from '../lib/errors';
 
+export interface Storage {
+  get(key: string): Promise<string | null>
+  put(key: string, value: string, ttl?: number): Promise<void>
+  delete(key: string): Promise<void>
+}
+
 // 读取 HTML 页面（兼容 Node.js 和 CF Workers）
 let page: string = ''
 
@@ -35,7 +41,7 @@ await loadHtmlPage()
  * @param {Storage} storage - 存储实现（KV 或 Memory）
  * @param {Object} config - 配置对象
  */
-export function createApp(storage: any, config: AppConfig = {}) {
+export function createApp(storage: Storage, config: AppConfig = {}) {
   const app = new Hono()
 
   app.onError((err, c) => {
@@ -65,10 +71,18 @@ export function createApp(storage: any, config: AppConfig = {}) {
 
   // 使用传入的 HTML 页面或默认的 page 变量
   const htmlPage = config.htmlPage || page
-  const cacheTTL = config.cacheTTL !== undefined ? config.cacheTTL : 86400 * 2 // 默认 2 天
+  const cacheTTL = normalizeCacheTTL(config.cacheTTL) // 默认 2 天
 
   // 全局 CORS 中间件
   app.use('*', cors())
+
+  function normalizeCacheTTL(value: unknown): number {
+    const DEFAULT = 86400 * 2
+    if (value === undefined) return DEFAULT
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return DEFAULT
+    // TTL is seconds; enforce integer semantics.
+    return Math.floor(value)
+  }
 
   function getRequestApiKey(c: Context): string | undefined {
     const q = c.req.query('apikey')

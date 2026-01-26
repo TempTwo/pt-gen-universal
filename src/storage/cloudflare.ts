@@ -12,7 +12,7 @@ export class CloudflareKVStorage {
     return await this.kv.get(key)
   }
 
-  async put(key: string, value: string, ttl: number): Promise<void> {
+  async put(key: string, value: string, ttl?: number): Promise<void> {
     const options: any = {}
     if (ttl) {
       options.expirationTtl = ttl

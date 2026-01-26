@@ -20,6 +20,13 @@ export class BangumiScraper implements Scraper {
             fetchWithTimeout(`${bangumiLink}/characters`, {}, timeoutMs)
         ]);
 
+        if (!mainResp.ok) {
+            if (mainResp.status === 404) {
+                throw new Error(NONE_EXIST_ERROR);
+            }
+            throw new Error(`Bangumi request failed: ${mainResp.status} ${mainResp.statusText}`);
+        }
+
         const mainHtml = await mainResp.text();
         if (mainHtml.includes('呜咕，出错了')) {
             throw new Error(NONE_EXIST_ERROR);

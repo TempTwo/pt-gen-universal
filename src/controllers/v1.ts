@@ -104,26 +104,7 @@ export class V1Controller {
             err_return['debug'] = debug_get_err(e, c.req.raw);
         }
 
-        // V1 usually returns 500 for errors, but wrapper goal says "200 OK" is sometimes used by legacy clients?
-        // Wait, app.ts analysis showed: return c.json(makeJsonResponseData(err_return), 500)
-        // So I should keep 500.
-        // User request said: "Mimicry... V1 Interface... mimic legacy behavior".
-        // "V1 Adapter logic... Returns 200 OK even for errors. Structure: { success: false, error: ... }"
-        // BUT current app.ts returns 500.
-        // User said: "V1 Old version compatibility... Mimicry... Original project habits: Error returns HTTP 200... JSON { success: false, msg: ... }"
-        // BUT my analysis of app.ts showed `return c.json(..., 500)`.
-        // Line 290: `return c.json(makeJsonResponseData(err_return), 500)`
-        // So the *current* code outputs 500.
-        // If the user wants to mimic *legacy* behavior (before my refactor?), maybe they believe it was 200?
-        // OR maybe "Original Project" refer to the Python version or previous versions?
-        // User request: "V1 adapter logic... Returns 200 OK". 
-        // I should probably follow the USER instruction to return 200 if they explicitly asked for it in the prompt ("V1 Adapter logic: Returns 200 OK even for errors").
-        // Wait, the prompt said: "Simulate Scenario: Original project returns HTTP 200... New kernel throws 502... V1 adapter logic: return jsonify(...), 200".
-        // It was an *example*? "Scene simulation".
-        // "For V1 interface, principle is only one: Mimic original project error behavior".
-        // If original project (current app.ts) returns 500, I should return 500.
-        // Checking app.ts line 290 again. `return c.json(..., 500)`.
-        // So I will return 500 to invoke exact behavior of app.ts.
+        // Keep legacy-ish shape; return 500 for errors.
         return c.json(this.makeJsonResponseData(err_return), 500);
     }
 

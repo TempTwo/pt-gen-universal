@@ -20,6 +20,8 @@ import { TmdbNormalizer } from './normalizers/tmdb';
 import { BBCodeFormatter } from './formatters/bbcode';
 import { JsonFormatter } from './formatters/json';
 import { MarkdownFormatter } from './formatters/markdown';
+import { AppError, ErrorCode } from './errors';
+import { toAppError } from './utils/app-error';
 
 export class Orchestrator {
     private scrapers: Map<string, Scraper> = new Map();
@@ -66,54 +68,66 @@ export class Orchestrator {
         id: string,
         formatterName: string = 'bbcode'
     ): Promise<string> {
-        const scraper = this.scrapers.get(sourceName);
-        if (!scraper) {
-            throw new Error(`Scraper not found: ${sourceName}`);
-        }
+        try {
+            const scraper = this.scrapers.get(sourceName);
+            if (!scraper) {
+                throw new AppError(ErrorCode.INVALID_PARAM, `Scraper not found: ${sourceName}`);
+            }
 
-        const normalizer = this.normalizers.get(sourceName);
-        if (!normalizer) {
-            throw new Error(`Normalizer not found: ${sourceName}`);
-        }
+            const normalizer = this.normalizers.get(sourceName);
+            if (!normalizer) {
+                throw new AppError(ErrorCode.INVALID_PARAM, `Normalizer not found: ${sourceName}`);
+            }
 
-        const formatter = this.formatters.get(formatterName);
-        if (!formatter) {
-            throw new Error(`Formatter not found: ${formatterName}`);
-        }
+            const formatter = this.formatters.get(formatterName);
+            if (!formatter) {
+                throw new AppError(ErrorCode.INVALID_PARAM, `Formatter not found: ${formatterName}`);
+            }
 
-        const rawData = await scraper.fetch(id, this.config);
-        if (!rawData.success) {
-            throw new Error(rawData.error || 'Unknown error during fetch');
-        }
+            const rawData = await scraper.fetch(id, this.config);
+            if (!rawData.success) {
+                throw toAppError(new Error(rawData.error || 'Unknown error during fetch'));
+            }
 
-        const mediaInfo = normalizer.normalize(rawData, this.config);
-        return formatter.format(mediaInfo);
+            const mediaInfo = normalizer.normalize(rawData, this.config);
+            return formatter.format(mediaInfo);
+        } catch (e) {
+            throw toAppError(e);
+        }
     }
 
     async getMediaInfo(sourceName: string, id: string): Promise<MediaInfo> {
-        const scraper = this.scrapers.get(sourceName);
-        if (!scraper) {
-            throw new Error(`Scraper not found: ${sourceName}`);
-        }
+        try {
+            const scraper = this.scrapers.get(sourceName);
+            if (!scraper) {
+                throw new AppError(ErrorCode.INVALID_PARAM, `Scraper not found: ${sourceName}`);
+            }
 
-        const normalizer = this.normalizers.get(sourceName);
-        if (!normalizer) {
-            throw new Error(`Normalizer not found: ${sourceName}`);
-        }
+            const normalizer = this.normalizers.get(sourceName);
+            if (!normalizer) {
+                throw new AppError(ErrorCode.INVALID_PARAM, `Normalizer not found: ${sourceName}`);
+            }
 
-        const rawData = await scraper.fetch(id, this.config);
-        if (!rawData.success) {
-            throw new Error(rawData.error || 'Unknown error during fetch');
-        }
+            const rawData = await scraper.fetch(id, this.config);
+            if (!rawData.success) {
+                throw toAppError(new Error(rawData.error || 'Unknown error during fetch'));
+            }
 
-        return normalizer.normalize(rawData, this.config);
+            return normalizer.normalize(rawData, this.config);
+        } catch (e) {
+            throw toAppError(e);
+        }
     }
 
     async search(sourceName: string, query: string): Promise<SearchResult[]> {
-        const scraper = this.scrapers.get(sourceName);
-        if (!scraper) {
-            throw new Error(`Scraper not found: ${sourceName}`);
+        try {
+            const scraper = this.scrapers.get(sourceName);
+            if (!scraper) {
+                throw new AppError(ErrorCode.INVALID_PARAM, `Scraper not found: ${sourceName}`);
+            }
+            return await scraper.search(query, this.config);
+        } catch (e) {
+            throw toAppError(e);
         }
-        return scraper.search(query, this.config);
     }
 }

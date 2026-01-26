@@ -21,6 +21,12 @@ export class IndienovaScraper implements Scraper {
         }
 
         const response = await fetchWithTimeout(url, { headers }, timeoutMs);
+        if (!response.ok) {
+            if (response.status === 404) {
+                throw new Error(NONE_EXIST_ERROR);
+            }
+            throw new Error(`Indienova request failed: ${response.status} ${response.statusText}`);
+        }
 
         const html = await response.text();
         if (html.includes('出现错误')) {

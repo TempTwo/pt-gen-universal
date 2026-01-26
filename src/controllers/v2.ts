@@ -6,8 +6,8 @@ import { API_VERSION, SCHEMA_VERSION, PARSER_VERSION, SOURCE_FINGERPRINTS } from
 import { ApiV2SuccessResponse } from '../../lib/types/api_v2';
 import { BBCodeFormatter } from '../../lib/formatters/bbcode';
 import { MarkdownFormatter } from '../../lib/formatters/markdown';
-import { NONE_EXIST_ERROR } from '../../lib/utils/error';
 import { matchUrl } from '../../lib/utils/url';
+import { toAppError } from '../../lib/utils/app-error';
 
 export class V2Controller {
     private bbcodeFormatter: BBCodeFormatter;
@@ -105,11 +105,7 @@ export class V2Controller {
 
             return c.json(response);
         } catch (e: any) {
-            // Rethrow AppErrors, wrap others
-            if (e instanceof AppError) throw e;
-
-            const message = typeof e?.message === 'string' ? e.message : 'Unknown error';
-            throw this.mapError(message);
+            throw toAppError(e);
         }
     }
 
@@ -144,42 +140,11 @@ export class V2Controller {
             return c.json(response);
 
         } catch (e: any) {
-            if (e instanceof AppError) throw e;
-            const message = typeof e?.message === 'string' ? e.message : 'Unknown error';
-            throw this.mapError(message);
+            throw toAppError(e);
         }
     }
 
     private parseUrl(url: string): { site: string, sid: string } {
         return matchUrl(url);
-    }
-
-    private mapError(message: string): AppError {
-        const normalized = message.toLowerCase();
-
-        // Invalid/unsupported sources should be treated as client errors.
-        if (
-            normalized.includes('scraper not found:') ||
-            normalized.includes('normalizer not found:') ||
-            normalized.includes('formatter not found:')
-        ) {
-            return new AppError(ErrorCode.INVALID_PARAM, message);
-        }
-
-        if (message === NONE_EXIST_ERROR || normalized.includes('not found')) {
-            return new AppError(ErrorCode.TARGET_NOT_FOUND, message);
-        }
-        if (normalized.includes('timeout')) {
-            return new AppError(ErrorCode.TARGET_TIMEOUT, message);
-        }
-        if (
-            normalized.includes('sec.douban.com') ||
-            normalized.includes('anti-bot') ||
-            normalized.includes('captcha')
-        ) {
-            return new AppError(ErrorCode.TARGET_BLOCKING, message);
-        }
-
-        return new AppError(ErrorCode.INTERNAL_ERROR, message);
     }
 }
