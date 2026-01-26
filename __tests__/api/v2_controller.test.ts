@@ -112,6 +112,24 @@ describe('API v2 controller contract', () => {
     expect(json.data.format).toContain('## 基本信息')
   })
 
+  it('rejects invalid format with INVALID_PARAM (400)', async () => {
+    const v2 = new V2Controller(
+      {
+        getMediaInfo: async () => fakeInfo,
+        search: async () => [],
+      } as any,
+      {}
+    )
+    const app = makeTestApp(v2)
+
+    const res = await app.request(
+      'http://localhost/api/v2/info?site=douban&sid=1292052&format=xml'
+    )
+    expect(res.status).toBe(400)
+    const json = await res.json()
+    expect(json.error.code).toBe('INVALID_PARAM')
+  })
+
   it('enforces disableSearch in v2', async () => {
     const v2 = new V2Controller(
       {
@@ -150,4 +168,3 @@ describe('API v2 controller contract', () => {
     expect(json.error.code).toBe('INVALID_PARAM')
   })
 })
-

@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { RateLimiter } from '../lib/rate-limiter.js'
+import { RateLimiter } from '../lib/rate-limiter'
 
 describe('RateLimiter 频率限制器', () => {
-    let limiter
+    let limiter: RateLimiter
 
     beforeEach(() => {
         limiter = new RateLimiter({ rate: 5, capacity: 10 })

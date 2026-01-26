@@ -96,7 +96,8 @@ export class RateLimiter {
     /**
      * 辅助函数：睡眠指定毫秒数
      */
-    private sleep(ms: number): Promise<void> {
+    // Public for tests and legacy compatibility.
+    sleep(ms: number): Promise<void> {
         return new Promise((resolve) => setTimeout(resolve, ms));
     }
 

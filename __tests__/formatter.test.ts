@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { formatMovieInfo, BBCodeFormatter, MarkdownFormatter } from '../lib/formatter.js'
+import { formatMovieInfo, BBCodeFormatter, MarkdownFormatter } from '../lib/formatter'
 
 describe('Formatter 模块', () => {
     describe('BBCodeFormatter', () => {

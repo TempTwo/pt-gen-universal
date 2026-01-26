@@ -45,30 +45,6 @@ function stableSearchString(url: URL): string {
   return `?${sp.toString()}`
 }
 
-// 读取 HTML 页面（兼容 Node.js 和 CF Workers）
-let page: string = ''
-
-// 检测运行环境并加载 HTML
-async function loadHtmlPage() {
-  // 检测是否在 Node.js/Bun 环境（有 process 对象）
-  if (typeof process !== 'undefined' && process.versions && process.versions.node) {
-    try {
-      const { readFileSync } = await import('fs')
-      const { fileURLToPath } = await import('url')
-      const { dirname, join } = await import('path')
-      const __filename = fileURLToPath(import.meta.url)
-      const __dirname = dirname(__filename)
-      page = readFileSync(join(__dirname, '../index.html'), 'utf-8')
-    } catch (e) {
-      console.warn('Failed to load HTML page:', (e as any).message)
-    }
-  }
-  // CF Workers 环境下，page 会在 createApp 时通过参数传入
-}
-
-// 立即加载 HTML（仅在 Node.js/Bun 环境）
-await loadHtmlPage()
-
 /**
  * 创建 Hono 应用
  * @param {Storage} storage - 存储实现（KV 或 Memory）
@@ -102,8 +78,8 @@ export function createApp(storage: Storage, config: AppConfig = {}) {
   const v1 = new V1Controller(orchestrator, config);
   const v2 = new V2Controller(orchestrator, config);
 
-  // 使用传入的 HTML 页面或默认的 page 变量
-  const htmlPage = config.htmlPage || page
+  // HTML must be provided by the runtime adapter (Node/Bun/CF).
+  const htmlPage = config.htmlPage || ''
   const cacheTTL = normalizeCacheTTL(config.cacheTTL) // 默认 2 天
 
   // 全局 CORS 中间件
@@ -136,7 +112,7 @@ export function createApp(storage: Storage, config: AppConfig = {}) {
     const stableSearch = stableSearchString(url)
     const rawKey = `${c.req.method}:${url.pathname}${stableSearch}`
     const hashed = await sha256Hex(rawKey)
-    return `ptgen:v1:${hashed}`
+    return `ptgen:cache:${hashed}`
   }
 
   // APIKEY 验证中间件
@@ -215,7 +191,8 @@ export function createApp(storage: Storage, config: AppConfig = {}) {
     const site = c.req.query('site')
 
     if (!search && !url && !site) {
-      return c.html(htmlPage)
+      if (htmlPage) return c.html(htmlPage)
+      return c.text('PT-Gen')
     }
 
     // 兼容旧 Query Params -> 重定向到 API V1

@@ -49,6 +49,12 @@ export class V2Controller {
             }
         }
 
+        const normalizedFormat = String(format).trim().toLowerCase();
+        const allowedFormats = new Set(['json', 'bbcode', 'markdown']);
+        if (!allowedFormats.has(normalizedFormat)) {
+            throw new AppError(ErrorCode.INVALID_PARAM, "Invalid 'format' parameter");
+        }
+
         // Resolve effective input. Precedence: body > path > query for site/sid; body > query for url.
         let url: string | undefined = bodyUrl ?? queryUrl;
         let site: string | undefined = bodySite ?? pathSite ?? querySite;
@@ -75,11 +81,10 @@ export class V2Controller {
             const info = await this.orchestrator.getMediaInfo(site, sid);
 
             // Generate format output if requested
-            const validFormat = typeof format === 'string' ? format.toLowerCase() : 'bbcode';
             let formatOutput: string | undefined;
 
-            if (validFormat === 'bbcode' || validFormat === 'markdown') {
-                if (validFormat === 'bbcode') {
+            if (normalizedFormat === 'bbcode' || normalizedFormat === 'markdown') {
+                if (normalizedFormat === 'bbcode') {
                     formatOutput = this.bbcodeFormatter.format(info);
                 } else {
                     formatOutput = this.markdownFormatter.format(info);

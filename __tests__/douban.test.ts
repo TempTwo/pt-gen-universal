@@ -9,7 +9,7 @@ describe('Douban HTML parsing (New Architecture)', () => {
   const normalizer = new DoubanNormalizer();
 
   it('parses desktop HTML sample', () => {
-    const rawData = {
+    const rawData: any = {
       site: 'douban',
       sid: '1292052',
       html: desktopHtml,
@@ -17,7 +17,7 @@ describe('Douban HTML parsing (New Architecture)', () => {
       success: true
     };
 
-    const data = normalizer.normalize(rawData, {});
+    const data = normalizer.normalize(rawData, {} as any);
 
     expect(data.site).toBe('douban')
     expect(data.douban_link).toBe('https://movie.douban.com/subject/1292052/')
@@ -30,7 +30,7 @@ describe('Douban HTML parsing (New Architecture)', () => {
   })
 
   it('parses mobile HTML sample', () => {
-    const rawData = {
+    const rawData: any = {
       site: 'douban',
       sid: '1292052',
       html: mobileHtml,
@@ -38,7 +38,7 @@ describe('Douban HTML parsing (New Architecture)', () => {
       success: true
     };
 
-    const data = normalizer.normalize(rawData, {});
+    const data = normalizer.normalize(rawData, {} as any);
 
     expect(data.site).toBe('douban')
     expect(data.year.trim()).toBe('1994')

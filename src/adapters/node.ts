@@ -1,6 +1,7 @@
 import { serve } from '@hono/node-server'
 import { createApp } from '../app'
 import { MemoryStorage } from '../storage/memory'
+import { readFileSync } from 'node:fs'
 
 /**
  * Node.js 运行时入口
@@ -23,12 +24,21 @@ function parseNumberEnv(value: unknown): number | undefined {
 // 创建内存存储适配器
 const storage = new MemoryStorage()
 
+function loadHtmlPage(): string | undefined {
+  try {
+    return readFileSync(new URL('../../index.html', import.meta.url), 'utf-8')
+  } catch {
+    return undefined
+  }
+}
+
 // 创建 Hono 应用
 const app = createApp(storage, {
   apikey: process.env.APIKEY,
   disableSearch: parseBooleanEnv(process.env.DISABLE_SEARCH) ?? false,
   enableDebug: parseBooleanEnv(process.env.ENABLE_DEBUG) ?? false,
   cacheTTL: parseNumberEnv(process.env.CACHE_TTL),
+  htmlPage: loadHtmlPage(),
   tmdbApiKey: process.env.TMDB_API_KEY,
   doubanCookie: process.env.DOUBAN_COOKIE,
   indienovaCookie: process.env.INDIENOVA_COOKIE
