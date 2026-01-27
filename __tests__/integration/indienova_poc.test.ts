@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Orchestrator } from '../../lib/orchestrator';
 import { IndienovaScraper } from '../../lib/scrapers/indienova';
+import { BBCodeFormatter } from '../../lib/formatters/bbcode';
 import * as fetchModule from '../../lib/utils/fetch';
 
 describe('Indienova POC Integration', () => {
@@ -27,7 +28,8 @@ describe('Indienova POC Integration', () => {
             return { ok: false, status: 404 } as Response;
         });
 
-        const result = await orchestrator.fetchInfo('indienova', 'game-id', 'bbcode');
+        const info = await orchestrator.getMediaInfo('indienova', 'game-id');
+        const result = new BBCodeFormatter().format(info);
 
         expect(result).toContain('Game Title');
         expect(result).toContain('Description');

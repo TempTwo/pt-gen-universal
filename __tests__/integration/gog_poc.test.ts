@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Orchestrator } from '../../lib/orchestrator';
 import { GogScraper } from '../../lib/scrapers/gog';
+import { BBCodeFormatter } from '../../lib/formatters/bbcode';
 import * as fetchModule from '../../lib/utils/fetch';
 
 describe('GOG POC Integration', () => {
@@ -42,7 +43,8 @@ describe('GOG POC Integration', () => {
             return { ok: false, status: 404 } as Response;
         });
 
-        const result = await orchestrator.fetchInfo('gog', '12345', 'bbcode');
+        const info = await orchestrator.getMediaInfo('gog', '12345');
+        const result = new BBCodeFormatter().format(info);
 
         expect(result).toContain('Cyberpunk 2077');
         expect(result).toContain('Wake up samurai');

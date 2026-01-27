@@ -48,9 +48,10 @@ describe('TMDB POC Integration', () => {
             status: 200,
             json: async () => mockResponse,
             text: async () => JSON.stringify(mockResponse)
-        } as Response);
-
-        const result = await orchestrator.fetchInfo('tmdb', '101', 'bbcode');
+	        } as Response);
+	
+	        const info = await orchestrator.getMediaInfo('tmdb', '101');
+	        const result = new BBCodeFormatter().format(info);
 
         expect(result).toContain('◎片　　名　The Matrix');
         expect(result).toContain('◎年　　代　1999');

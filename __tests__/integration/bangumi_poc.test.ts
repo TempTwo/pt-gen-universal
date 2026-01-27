@@ -1,8 +1,8 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Orchestrator } from '../../lib/orchestrator';
-import { ImdbScraper } from '../../lib/scrapers/imdb'; // Unused
 import { BangumiScraper } from '../../lib/scrapers/bangumi';
+import { BBCodeFormatter } from '../../lib/formatters/bbcode';
 import * as fetchModule from '../../lib/utils/fetch';
 
 describe('Bangumi POC Integration', () => {
@@ -37,7 +37,8 @@ describe('Bangumi POC Integration', () => {
             return { ok: false, status: 404 } as Response;
         });
 
-        const result = await orchestrator.fetchInfo('bangumi', '1', 'bbcode');
+        const info = await orchestrator.getMediaInfo('bangumi', '1');
+        const result = new BBCodeFormatter().format(info);
 
         expect(result).toContain('星际牛仔'); // Chinese title priority in Bangumi
         expect(result).toContain('1998');

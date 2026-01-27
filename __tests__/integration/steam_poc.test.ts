@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Orchestrator } from '../../lib/orchestrator';
 import { SteamScraper } from '../../lib/scrapers/steam';
+import { BBCodeFormatter } from '../../lib/formatters/bbcode';
 import * as fetchModule from '../../lib/utils/fetch';
 
 describe('Steam POC Integration', () => {
@@ -33,7 +34,8 @@ describe('Steam POC Integration', () => {
             return { ok: false, status: 404 } as Response;
         });
 
-        const result = await orchestrator.fetchInfo('steam', '220', 'bbcode');
+        const info = await orchestrator.getMediaInfo('steam', '220');
+        const result = new BBCodeFormatter().format(info);
 
         expect(result).toContain('半条命2');
         expect(result).toContain('Half-Life 2');

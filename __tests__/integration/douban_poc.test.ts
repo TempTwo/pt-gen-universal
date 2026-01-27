@@ -4,7 +4,6 @@ import { Orchestrator } from '../../lib/orchestrator';
 import { DoubanScraper } from '../../lib/scrapers/douban';
 import { DoubanNormalizer } from '../../lib/normalizers/douban';
 import { BBCodeFormatter } from '../../lib/formatters/bbcode';
-import { JsonFormatter } from '../../lib/formatters/json';
 import * as fetchModule from '../../lib/utils/fetch';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -22,8 +21,6 @@ describe('Douban POC Integration', () => {
         orchestrator = new Orchestrator(config);
         orchestrator.registerScraper('douban', new DoubanScraper());
         orchestrator.registerNormalizer('douban', new DoubanNormalizer());
-        orchestrator.registerFormatter('bbcode', new BBCodeFormatter());
-        orchestrator.registerFormatter('json', new JsonFormatter());
     });
 
     it('should fetch and format douban desktop movie info', async () => {
@@ -36,7 +33,8 @@ describe('Douban POC Integration', () => {
             return new Response('', { status: 404 });
         });
 
-        const result = await orchestrator.fetchInfo('douban', '1292052', 'bbcode');
+        const info = await orchestrator.getMediaInfo('douban', '1292052');
+        const result = new BBCodeFormatter().format(info);
 
         // Expected order with localeCompare: 
         // 刺激1995(台) / 地狱诺言 / 月黑高飞(港) / 消香克的救赎 / 铁窗岁月
@@ -73,7 +71,8 @@ describe('Douban POC Integration', () => {
             return new Response('', { status: 404 });
         });
 
-        const result = await orchestrator.fetchInfo('douban', '1292052', 'bbcode');
+        const info = await orchestrator.getMediaInfo('douban', '1292052');
+        const result = new BBCodeFormatter().format(info);
 
         expect(result).toContain('◎译　　名　肖申克的救赎');
         expect(result).toContain('◎片　　名　The Shawshank Redemption');

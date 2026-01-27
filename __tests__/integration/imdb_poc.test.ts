@@ -80,7 +80,8 @@ describe('IMDb POC Integration', () => {
             return { ok: false, status: 404 } as Response;
         });
 
-        const result = await orchestrator.fetchInfo('imdb', 'tt1375666', 'bbcode');
+        const info = await orchestrator.getMediaInfo('imdb', 'tt1375666');
+        const result = new BBCodeFormatter().format(info);
 
         expect(result).toContain('Inception');
         expect(result).toContain('2010');
