@@ -41,7 +41,7 @@ export class V2Controller {
             // Hono/Request will throw on empty body if we call c.req.json() unconditionally.
             // Allow POST with only query params; only treat it as "invalid JSON" when a non-empty
             // body looks like JSON but can't be parsed.
-            const contentType = c.req.header('content-type') || '';
+            const contentType = (c.req.header('content-type') || '').toLowerCase();
             let rawBody = '';
             try {
                 rawBody = await c.req.text();
@@ -51,11 +51,14 @@ export class V2Controller {
 
             const trimmed = rawBody.trim();
             if (trimmed) {
-                const ct = contentType.toLowerCase();
-                const declaredJson = ct.includes('application/json') || ct.includes('+json');
-                const looksLikeJson = /^[\s]*[{\[]/.test(rawBody);
+                const declaredJson =
+                    contentType.includes('application/json') || contentType.includes('+json');
+                const looksLikeJson = /^[\s]*[{\[]/.test(trimmed);
+                const shouldTryParseJson = declaredJson || looksLikeJson;
 
-                if (declaredJson || looksLikeJson || ct === '') {
+                // If it's not declared as JSON and doesn't look like JSON, ignore the body and
+                // fall back to query/path params. This prevents misclassifying form/text bodies.
+                if (shouldTryParseJson) {
                     try {
                         const body = JSON.parse(rawBody);
                         if (typeof body?.url === 'string') bodyUrl = body.url;

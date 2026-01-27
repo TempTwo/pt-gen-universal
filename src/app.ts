@@ -65,10 +65,20 @@ export function createApp(storage: Storage, config: AppConfig = {}) {
       }, err.httpStatus as any);
     }
 
+    const message =
+      typeof err === 'string'
+        ? err
+        : (err &&
+            typeof err === 'object' &&
+            'message' in err &&
+            typeof (err as any).message === 'string')
+          ? (err as any).message
+          : 'Internal Server Error'
+
     return c.json({
       error: {
         code: 'INTERNAL_ERROR',
-        message: err.message || 'Internal Server Error'
+        message
       }
     }, 500);
   });
