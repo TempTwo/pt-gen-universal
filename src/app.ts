@@ -6,6 +6,7 @@ import { V1Controller } from './controllers/v1';
 import { V2Controller } from './controllers/v2';
 import { AppError, ErrorCode } from '../lib/errors';
 import { DEFAULT_SITE_PLUGINS } from './registry';
+import { CTX_CACHEABLE } from './utils/context'
 
 export interface Storage {
   get(key: string): Promise<string | null>
@@ -116,7 +117,7 @@ function createAuthMiddleware(config: AppConfig) {
   }
 }
 
-function createCacheMiddleware(storage: Storage, cacheTTL: number) {
+export function createCacheMiddleware(storage: Storage, cacheTTL: number) {
   return async (c: Context, next: () => Promise<void>) => {
     if (cacheTTL === 0) return next()
     // Only cache GET. POST (e.g. /api/v2/info JSON body) must never share cache keys.
@@ -155,12 +156,7 @@ function createCacheMiddleware(storage: Storage, cacheTTL: number) {
     try {
       const clonedRes = c.res.clone()
       const data = await clonedRes.json()
-      // 如果数据中没有 error 字段，或者 success 为 true，则缓存
-      // 适配 V1 和 V2 的成功判断逻辑
-      const isV1Success = data.success === true
-      const isV2Success = data.meta && !data.error // V2 success usually has meta and no error
-
-      if (isV1Success || isV2Success || (!data.error && !data.success)) {
+      if (c.get(CTX_CACHEABLE) === true) {
         const write = storage.put(cacheKey, JSON.stringify(data), cacheTTL)
         // In CF Workers, avoid delaying the response on cache writes when possible.
         const execCtx = (c as any).executionCtx

@@ -7,6 +7,7 @@ import { ApiV2SuccessResponse } from '../../lib/types/api_v2';
 import { BBCodeFormatter } from '../../lib/formatters/bbcode';
 import { MarkdownFormatter } from '../../lib/formatters/markdown';
 import { toAppError } from '../../lib/utils/app-error';
+import { CTX_CACHEABLE } from '../utils/context';
 
 export class V2Controller {
     private bbcodeFormatter: BBCodeFormatter;
@@ -130,6 +131,7 @@ export class V2Controller {
                 }
             };
 
+            c.set(CTX_CACHEABLE, true)
             return c.json(response);
         } catch (e: any) {
             throw toAppError(e);
@@ -164,6 +166,7 @@ export class V2Controller {
                 },
                 data: results
             };
+            c.set(CTX_CACHEABLE, true)
             return c.json(response);
 
         } catch (e: any) {

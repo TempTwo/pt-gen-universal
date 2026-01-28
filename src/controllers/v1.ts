@@ -5,6 +5,7 @@ import { AUTHOR, VERSION } from '../../lib/const';
 import { BBCodeFormatter } from '../../lib/formatters/bbcode';
 import { MarkdownFormatter } from '../../lib/formatters/markdown';
 import debug_get_err from '../../lib/utils/error';
+import { CTX_CACHEABLE } from '../utils/context';
 
 export class V1Controller {
     private bbcodeFormatter: BBCodeFormatter;
@@ -40,6 +41,7 @@ export class V1Controller {
                     img: item.poster
                 }))
             };
+            c.set(CTX_CACHEABLE, true)
             return c.json(this.makeJsonResponseData(compatibleData));
         } catch (e: any) {
             return this.handleError(c, e);
@@ -87,6 +89,7 @@ export class V1Controller {
                 },
                 link: info.link || ``
             };
+            c.set(CTX_CACHEABLE, true)
             return c.json(this.makeJsonResponseData(data));
         } catch (e: any) {
             return this.handleError(c, e);
