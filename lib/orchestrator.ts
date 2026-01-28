@@ -46,11 +46,7 @@ export class Orchestrator {
             for (const pattern of plugin.urlPatterns) {
                 // Use exec() so capture groups work even if someone accidentally adds /g.
                 // Reset lastIndex to avoid stateful regex surprises.
-                try {
-                    pattern.lastIndex = 0;
-                } catch {
-                    // Ignore non-writable lastIndex (shouldn't happen for normal RegExp instances).
-                }
+                pattern.lastIndex = 0;
                 const match = pattern.exec(url);
                 if (!match) continue;
                 const sid = plugin.parseSid ? plugin.parseSid(match) : match[1];

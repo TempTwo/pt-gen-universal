@@ -24,15 +24,7 @@ async function sha256Hex(input: string): Promise<string> {
       .join('')
   }
 
-  // Very old runtimes fallback: FNV-1a 32-bit (non-cryptographic).
-  // This should effectively never be used in supported targets, but avoids bundling Node built-ins.
-  let hash = 0x811c9dc5
-  for (let i = 0; i < input.length; i++) {
-    hash ^= input.charCodeAt(i)
-    // 32-bit FNV-1a prime multiplication
-    hash = Math.imul(hash, 0x01000193)
-  }
-  return (hash >>> 0).toString(16).padStart(8, '0')
+  throw new Error('WebCrypto (crypto.subtle) is required for cache key hashing')
 }
 
 function stableSearchString(url: URL): string {
@@ -46,88 +38,72 @@ function stableSearchString(url: URL): string {
   return `?${sp.toString()}`
 }
 
-/**
- * 创建 Hono 应用
- * @param {Storage} storage - 存储实现（KV 或 Memory）
- * @param {Object} config - 配置对象
- */
-export function createApp(storage: Storage, config: AppConfig = {}) {
-  const app = new Hono()
+function normalizeCacheTTL(value: unknown): number {
+  const DEFAULT = 86400 * 2
+  if (value === undefined) return DEFAULT
+  if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return DEFAULT
+  // TTL is seconds; enforce integer semantics.
+  return Math.floor(value)
+}
 
-  app.onError((err, c) => {
+function getRequestApiKey(c: Context): string | undefined {
+  const q = c.req.query('apikey')
+  if (q) return q
+
+  const headerKey = c.req.header('x-api-key') || c.req.header('apikey')
+  if (headerKey) return headerKey
+
+  const auth = c.req.header('authorization')
+  if (!auth) return undefined
+  const m = auth.match(/^Bearer\s+(.+)$/i)
+  return m?.[1]
+}
+
+function createErrorHandler() {
+  return (err: unknown, c: Context) => {
     if (err instanceof AppError) {
-      return c.json({
-        error: {
-          code: err.code,
-          message: err.message,
-          details: err.details,
-          request_id: c.req.header('x-request-id')
-        }
-      }, err.httpStatus as any);
+      return c.json(
+        {
+          error: {
+            code: err.code,
+            message: err.message,
+            details: err.details,
+            request_id: c.req.header('x-request-id')
+          }
+        },
+        err.httpStatus as any
+      )
     }
 
     const message =
       typeof err === 'string'
         ? err
-        : (err &&
-            typeof err === 'object' &&
-            'message' in err &&
-            typeof (err as any).message === 'string')
+        : err && typeof err === 'object' && 'message' in err && typeof (err as any).message === 'string'
           ? (err as any).message
           : 'Internal Server Error'
 
-    return c.json({
-      error: {
-        code: 'INTERNAL_ERROR',
-        message
-      }
-    }, 500);
-  });
-
-  // 初始化 Orchestrator 和 Controllers
-  const orchestrator = new Orchestrator(config, DEFAULT_SITE_PLUGINS);
-  const v1 = new V1Controller(orchestrator, config);
-  const v2 = new V2Controller(orchestrator, config);
-
-  // HTML must be provided by the runtime adapter (Node/Bun/CF).
-  const htmlPage = config.htmlPage || ''
-  const cacheTTL = normalizeCacheTTL(config.cacheTTL) // 默认 2 天
-
-  // 全局 CORS 中间件
-  app.use('*', cors())
-
-  function normalizeCacheTTL(value: unknown): number {
-    const DEFAULT = 86400 * 2
-    if (value === undefined) return DEFAULT
-    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return DEFAULT
-    // TTL is seconds; enforce integer semantics.
-    return Math.floor(value)
+    return c.json(
+      {
+        error: {
+          code: 'INTERNAL_ERROR',
+          message
+        }
+      },
+      500
+    )
   }
+}
 
-  function getRequestApiKey(c: Context): string | undefined {
-    const q = c.req.query('apikey')
-    if (q) return q
+async function generateCacheKey(c: Context) {
+  const url = new URL(c.req.url)
+  const stableSearch = stableSearchString(url)
+  const rawKey = `${c.req.method}:${url.pathname}${stableSearch}`
+  const hashed = await sha256Hex(rawKey)
+  return `ptgen:cache:${hashed}`
+}
 
-    const headerKey = c.req.header('x-api-key') || c.req.header('apikey')
-    if (headerKey) return headerKey
-
-    const auth = c.req.header('authorization')
-    if (!auth) return undefined
-    const m = auth.match(/^Bearer\s+(.+)$/i)
-    return m?.[1]
-  }
-
-  // 生成缓存键
-  async function generateCacheKey(c: Context) {
-    const url = new URL(c.req.url)
-    const stableSearch = stableSearchString(url)
-    const rawKey = `${c.req.method}:${url.pathname}${stableSearch}`
-    const hashed = await sha256Hex(rawKey)
-    return `ptgen:cache:${hashed}`
-  }
-
-  // APIKEY 验证中间件
-  app.use('/api/*', async (c, next) => {
+function createAuthMiddleware(config: AppConfig) {
+  return async (c: Context, next: () => Promise<void>) => {
     if (config.apikey && getRequestApiKey(c) !== config.apikey) {
       const pathname = new URL(c.req.url).pathname
       // V1 keeps legacy-ish error shape; V2 uses unified AppError schema.
@@ -137,10 +113,11 @@ export function createApp(storage: Storage, config: AppConfig = {}) {
       return c.json({ error: 'apikey required.' }, 403)
     }
     await next()
-  })
+  }
+}
 
-  // 缓存中间件
-  app.use('/api/*', async (c, next) => {
+function createCacheMiddleware(storage: Storage, cacheTTL: number) {
+  return async (c: Context, next: () => Promise<void>) => {
     if (cacheTTL === 0) return next()
     // Only cache GET. POST (e.g. /api/v2/info JSON body) must never share cache keys.
     if (c.req.method !== 'GET') return next()
@@ -148,7 +125,7 @@ export function createApp(storage: Storage, config: AppConfig = {}) {
     // `debug` is intentionally excluded from the cache key for hit ratio, so we must bypass.
     if (c.req.query('debug') === '1') return next()
 
-    let cacheKey: string | null = null
+    let cacheKey: string
     try {
       cacheKey = await generateCacheKey(c)
     } catch {
@@ -163,7 +140,9 @@ export function createApp(storage: Storage, config: AppConfig = {}) {
           return c.json(JSON.parse(cached))
         } catch {
           // Corrupted cache entry: best-effort delete.
-          try { await storage.delete(cacheKey) } catch { }
+          try {
+            await storage.delete(cacheKey)
+          } catch {}
         }
       }
     } catch {
@@ -172,31 +151,32 @@ export function createApp(storage: Storage, config: AppConfig = {}) {
 
     await next()
 
-    if (c.res.status === 200) {
-      try {
-        const clonedRes = c.res.clone()
-        const data = await clonedRes.json()
-        // 如果数据中没有 error 字段，或者 success 为 true，则缓存
-        // 适配 V1 和 V2 的成功判断逻辑
-        const isV1Success = data.success === true;
-        const isV2Success = data.meta && !data.error; // V2 success usually has meta and no error
+    if (c.res.status !== 200) return
+    try {
+      const clonedRes = c.res.clone()
+      const data = await clonedRes.json()
+      // 如果数据中没有 error 字段，或者 success 为 true，则缓存
+      // 适配 V1 和 V2 的成功判断逻辑
+      const isV1Success = data.success === true
+      const isV2Success = data.meta && !data.error // V2 success usually has meta and no error
 
-        if (isV1Success || isV2Success || (!data.error && !data.success)) {
-          const write = storage.put(cacheKey, JSON.stringify(data), cacheTTL)
-          // In CF Workers, avoid delaying the response on cache writes when possible.
-          const execCtx = (c as any).executionCtx
-          if (execCtx && typeof execCtx.waitUntil === 'function') {
-            execCtx.waitUntil(write)
-          } else {
-            await write
-          }
+      if (isV1Success || isV2Success || (!data.error && !data.success)) {
+        const write = storage.put(cacheKey, JSON.stringify(data), cacheTTL)
+        // In CF Workers, avoid delaying the response on cache writes when possible.
+        const execCtx = (c as any).executionCtx
+        if (execCtx && typeof execCtx.waitUntil === 'function') {
+          execCtx.waitUntil(write)
+        } else {
+          await write
         }
-      } catch {
-        // Never let cache serialization/write failures break the response.
       }
+    } catch {
+      // Never let cache serialization/write failures break the response.
     }
-  })
+  }
+}
 
+function setupRoutes(app: Hono, v1: V1Controller, v2: V2Controller, htmlPage: string) {
   // ==================== Root & Redirects ====================
 
   app.get('/', async (c) => {
@@ -230,9 +210,7 @@ export function createApp(storage: Storage, config: AppConfig = {}) {
         return c.json({ error: 'Missing sid' }, 400)
       }
       const apikeyParam = apikey ? `?apikey=${apikey}` : ''
-      return c.redirect(
-        `/api/v1/info/${encodeURIComponent(site)}/${encodeURIComponent(sid)}${apikeyParam}`
-      )
+      return c.redirect(`/api/v1/info/${encodeURIComponent(site)}/${encodeURIComponent(sid)}${apikeyParam}`)
     }
   })
 
@@ -272,6 +250,32 @@ export function createApp(storage: Storage, config: AppConfig = {}) {
     const query = queryString ? `?${queryString}` : ''
     return c.redirect(`/api/v1/info/${site}/${sid}${query}`)
   })
+}
+
+/**
+ * 创建 Hono 应用
+ * @param {Storage} storage - 存储实现（KV 或 Memory）
+ * @param {Object} config - 配置对象
+ */
+export function createApp(storage: Storage, config: AppConfig = {}) {
+  const app = new Hono()
+
+  app.onError(createErrorHandler())
+
+  // 初始化 Orchestrator 和 Controllers
+  const orchestrator = new Orchestrator(config, DEFAULT_SITE_PLUGINS)
+  const v1 = new V1Controller(orchestrator, config)
+  const v2 = new V2Controller(orchestrator, config)
+
+  // HTML must be provided by the runtime adapter (Node/Bun/CF).
+  const htmlPage = config.htmlPage || ''
+  const cacheTTL = normalizeCacheTTL(config.cacheTTL) // 默认 2 天
+
+  // 全局 CORS 中间件
+  app.use('*', cors())
+  app.use('/api/*', createAuthMiddleware(config))
+  app.use('/api/*', createCacheMiddleware(storage, cacheTTL))
+  setupRoutes(app, v1, v2, htmlPage)
 
   return app
 }
