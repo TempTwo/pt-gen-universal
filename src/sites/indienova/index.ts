@@ -4,6 +4,7 @@ import { IndienovaNormalizer } from './normalizer';
 
 export const indienovaPlugin: SitePlugin = {
     site: 'indienova',
+    supportsSearch: false,
     urlPatterns: [
         // Keep the slug bounded to avoid swallowing extra path/query fragments.
         /(?:https?:\/\/)?indienova\.com\/(?:game|g)\/([^/?#]+)(?:[/?#]|$)/,
@@ -11,4 +12,3 @@ export const indienovaPlugin: SitePlugin = {
     scraper: new IndienovaScraper(),
     normalizer: new IndienovaNormalizer(),
 };
-

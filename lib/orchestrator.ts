@@ -6,6 +6,7 @@ import { SitePlugin } from './types/plugin';
 
 export class Orchestrator {
     private plugins: Map<string, SitePlugin> = new Map();
+    private pluginOrder: string[] = [];
 
     constructor(private config: AppConfig, plugins: SitePlugin[] = []) {
         this.registerPlugins(plugins);
@@ -17,12 +18,40 @@ export class Orchestrator {
 
     registerPlugin(plugin: SitePlugin) {
         this.plugins.set(plugin.site, plugin);
+        // Preserve registry order for stable matching when priorities tie.
+        if (!this.pluginOrder.includes(plugin.site)) this.pluginOrder.push(plugin.site);
+    }
+
+    private pluginsForMatching(): SitePlugin[] {
+        const withOrder = this.pluginOrder
+            .map((site, idx) => ({
+                idx,
+                plugin: this.plugins.get(site),
+            }))
+            .filter((x): x is { idx: number; plugin: SitePlugin } => Boolean(x.plugin));
+
+        // Higher priority first; ties keep registry order.
+        withOrder.sort((a, b) => {
+            const ap = a.plugin.priority ?? 0;
+            const bp = b.plugin.priority ?? 0;
+            if (ap !== bp) return bp - ap;
+            return a.idx - b.idx;
+        });
+
+        return withOrder.map((x) => x.plugin);
     }
 
     matchUrl(url: string): { site: string; sid: string } {
-        for (const plugin of this.plugins.values()) {
+        for (const plugin of this.pluginsForMatching()) {
             for (const pattern of plugin.urlPatterns) {
-                const match = url.match(pattern);
+                // Use exec() so capture groups work even if someone accidentally adds /g.
+                // Reset lastIndex to avoid stateful regex surprises.
+                try {
+                    pattern.lastIndex = 0;
+                } catch {
+                    // Ignore non-writable lastIndex (shouldn't happen for normal RegExp instances).
+                }
+                const match = pattern.exec(url);
                 if (!match) continue;
                 const sid = plugin.parseSid ? plugin.parseSid(match) : match[1];
                 // If the match doesn't yield a usable sid, keep trying other patterns/plugins.
@@ -62,6 +91,12 @@ export class Orchestrator {
             const plugin = this.plugins.get(sourceName);
             if (!plugin) {
                 throw new AppError(ErrorCode.INVALID_PARAM, `Scraper not found: ${sourceName}`);
+            }
+            if (plugin.supportsSearch === false) {
+                throw new AppError(
+                    ErrorCode.FEATURE_DISABLED,
+                    `search not supported for site: ${sourceName}`
+                );
             }
             return await plugin.scraper.search(query, this.config);
         } catch (e) {
