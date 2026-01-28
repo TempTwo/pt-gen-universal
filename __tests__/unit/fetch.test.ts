@@ -12,57 +12,59 @@ describe('fetchWithTimeout proxy', () => {
     globalThis.fetch = originalFetch
   })
 
-  it('should not proxy when Cookie is present by default', async () => {
-    const spy = vi.fn(async () => new Response('ok'))
-    globalThis.fetch = spy as any
+	  it('should not proxy when Cookie is present by default', async () => {
+	    const spy = vi.fn(async () => new Response('ok'))
+	    globalThis.fetch = spy as any
 
-    await fetchWithTimeout(
-      'https://example.com/a',
-      { headers: { Cookie: 'a=b' } },
-      50,
-      { proxyUrl: 'https://proxy.example/?url=' }
-    )
+	    const result = await fetchWithTimeout(
+	      'https://example.com/a',
+	      { headers: { Cookie: 'a=b' } },
+	      50,
+	      { proxyUrl: 'https://proxy.example/?url=' }
+	    )
+	    expect(result.proxyUsed).toBe(false)
 
-    expect(spy).toHaveBeenCalledWith(
-      'https://example.com/a',
-      expect.objectContaining({ signal: expect.anything() })
-    )
-  })
+	    expect(spy).toHaveBeenCalledWith(
+	      'https://example.com/a',
+	      expect.objectContaining({ signal: expect.anything() })
+	    )
+	  })
 
-  it('should proxy when Cookie is present and explicitly allowed', async () => {
-    const spy = vi.fn(async () => new Response('ok'))
-    globalThis.fetch = spy as any
+	  it('should proxy when Cookie is present and explicitly allowed', async () => {
+	    const spy = vi.fn(async () => new Response('ok'))
+	    globalThis.fetch = spy as any
 
-    await fetchWithTimeout(
-      'https://example.com/a',
-      { headers: { Cookie: 'a=b' } },
-      50,
-      {
-        proxyUrl: 'https://proxy.example/?url=',
-        proxyAllowSensitiveHeaders: true
-      }
-    )
+	    const result = await fetchWithTimeout(
+	      'https://example.com/a',
+	      { headers: { Cookie: 'a=b' } },
+	      50,
+	      {
+	        proxyUrl: 'https://proxy.example/?url=',
+	        proxyAllowSensitiveHeaders: true
+	      }
+	    )
+	    expect(result.proxyUsed).toBe(true)
 
-    expect(spy).toHaveBeenCalledWith(
-      expect.stringContaining('https://proxy.example/?url='),
-      expect.objectContaining({ signal: expect.anything() })
-    )
-  })
+	    expect(spy).toHaveBeenCalledWith(
+	      expect.stringContaining('https://proxy.example/?url='),
+	      expect.objectContaining({ signal: expect.anything() })
+	    )
+	  })
 
-  it('should not treat trailing "=" as implicit url= parameter', async () => {
-    const spy = vi.fn(async () => new Response('ok'))
-    globalThis.fetch = spy as any
+	  it('should not treat trailing "=" as implicit url= parameter', async () => {
+	    const spy = vi.fn(async () => new Response('ok'))
+	    globalThis.fetch = spy as any
 
-    await fetchWithTimeout(
-      'https://example.com/a?x=1',
-      {},
-      50,
-      { proxyUrl: 'https://proxy.example/fetch?token=' }
-    )
+	    const result = await fetchWithTimeout(
+	      'https://example.com/a?x=1',
+	      {},
+	      50,
+	      { proxyUrl: 'https://proxy.example/fetch?token=' }
+	    )
+	    expect(result.proxyUsed).toBe(true)
 
-    const calledUrl = (spy.mock.calls[0] as any)[0] as string
-    expect(calledUrl).toContain('token=')
-    expect(calledUrl).toContain('&url=')
-  })
+	    const calledUrl = (spy.mock.calls[0] as any)[0] as string
+	    expect(calledUrl).toContain('token=')
+	    expect(calledUrl).toContain('&url=')
+	  })
 })
-

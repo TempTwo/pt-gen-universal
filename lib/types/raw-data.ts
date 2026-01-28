@@ -7,6 +7,7 @@ export interface BaseRawData {
     site: string;
     success: boolean;
     error?: string;
+    proxy_used?: boolean;
 }
 
 export interface DoubanRawData extends BaseRawData {

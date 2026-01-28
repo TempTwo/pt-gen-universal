@@ -42,11 +42,15 @@ describe('TMDB POC Integration', () => {
         };
 
         const fetchSpy = vi.spyOn(fetchModule, 'fetchWithTimeout').mockResolvedValue({
-            ok: true,
-            status: 200,
-            json: async () => mockResponse,
-            text: async () => JSON.stringify(mockResponse)
-	        } as Response);
+            response: {
+                ok: true,
+                status: 200,
+                json: async () => mockResponse,
+                text: async () => JSON.stringify(mockResponse)
+            } as Response,
+            proxyUsed: false,
+            finalUrl: 'https://api.themoviedb.org/3/movie/101'
+        } as any);
 	
 	        const info = await orchestrator.getMediaInfo('tmdb', '101');
 	        const result = new BBCodeFormatter().format(info);
@@ -84,10 +88,14 @@ describe('TMDB POC Integration', () => {
         };
 
         const fetchSpy = vi.spyOn(fetchModule, 'fetchWithTimeout').mockResolvedValue({
-            ok: true,
-            status: 200,
-            json: async () => mockSearchResponse
-        } as Response);
+            response: {
+                ok: true,
+                status: 200,
+                json: async () => mockSearchResponse
+            } as Response,
+            proxyUsed: false,
+            finalUrl: 'https://api.themoviedb.org/3/search/multi'
+        } as any);
 
         const results = await orchestrator.search('tmdb', 'Matrix');
 

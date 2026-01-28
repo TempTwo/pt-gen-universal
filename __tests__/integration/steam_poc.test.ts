@@ -25,13 +25,30 @@ describe('Steam POC Integration', () => {
         `;
 
         const fetchSpy = vi.spyOn(fetchModule, 'fetchWithTimeout').mockImplementation(async (url) => {
-            if (url.includes('steamdb.keylol.com')) {
-                return { ok: true, status: 200, text: async () => 'some_callback({ "name_cn": "半条命2" })' } as Response;
+            const u = String(url);
+            if (u.includes('steamdb.keylol.com')) {
+                return {
+                    response: {
+                        ok: true,
+                        status: 200,
+                        text: async () => 'some_callback({ "name_cn": "半条命2" })'
+                    } as Response,
+                    proxyUsed: false,
+                    finalUrl: u
+                } as any;
             }
-            if (url.includes('store.steampowered.com/app/')) {
-                return { ok: true, status: 200, text: async () => mockMainHtml } as Response;
+            if (u.includes('store.steampowered.com/app/')) {
+                return {
+                    response: { ok: true, status: 200, text: async () => mockMainHtml } as Response,
+                    proxyUsed: false,
+                    finalUrl: u
+                } as any;
             }
-            return { ok: false, status: 404 } as Response;
+            return {
+                response: { ok: false, status: 404 } as Response,
+                proxyUsed: false,
+                finalUrl: u
+            } as any;
         });
 
         const info = await orchestrator.getMediaInfo('steam', '220');

@@ -29,18 +29,39 @@ describe('GOG POC Integration', () => {
         `;
 
         const fetchSpy = vi.spyOn(fetchModule, 'fetchWithTimeout').mockImplementation(async (url) => {
-            if (url.includes('catalog.gog.com')) {
+            const u = String(url);
+            if (u.includes('catalog.gog.com')) {
                 // Mock resolve ID if needed, but if we pass numeric ID it skips.
                 // If we pass slug it searches.
-                return { ok: true, status: 200, json: async () => ({ products: [{ slug: 'cp2077', id: 12345 }] }) } as Response;
+                return {
+                    response: {
+                        ok: true,
+                        status: 200,
+                        json: async () => ({ products: [{ slug: 'cp2077', id: 12345 }] })
+                    } as Response,
+                    proxyUsed: false,
+                    finalUrl: u
+                } as any;
             }
-            if (url.includes('api.gog.com')) {
-                return { ok: true, status: 200, json: async () => mockApiJson } as Response;
+            if (u.includes('api.gog.com')) {
+                return {
+                    response: { ok: true, status: 200, json: async () => mockApiJson } as Response,
+                    proxyUsed: false,
+                    finalUrl: u
+                } as any;
             }
-            if (url.includes('www.gog.com/en/game/')) {
-                return { ok: true, status: 200, text: async () => mockStoreHtml } as Response;
+            if (u.includes('www.gog.com/en/game/')) {
+                return {
+                    response: { ok: true, status: 200, text: async () => mockStoreHtml } as Response,
+                    proxyUsed: false,
+                    finalUrl: u
+                } as any;
             }
-            return { ok: false, status: 404 } as Response;
+            return {
+                response: { ok: false, status: 404 } as Response,
+                proxyUsed: false,
+                finalUrl: u
+            } as any;
         });
 
         const info = await orchestrator.getMediaInfo('gog', '12345');

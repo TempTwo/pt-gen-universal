@@ -22,10 +22,19 @@ describe('Indienova POC Integration', () => {
         `;
 
         const fetchSpy = vi.spyOn(fetchModule, 'fetchWithTimeout').mockImplementation(async (url) => {
-            if (url.includes('indienova.com/game/')) {
-                return { ok: true, status: 200, text: async () => mockHtml } as Response;
+            const u = String(url);
+            if (u.includes('indienova.com/game/')) {
+                return {
+                    response: { ok: true, status: 200, text: async () => mockHtml } as Response,
+                    proxyUsed: false,
+                    finalUrl: u
+                } as any;
             }
-            return { ok: false, status: 404 } as Response;
+            return {
+                response: { ok: false, status: 404 } as Response,
+                proxyUsed: false,
+                finalUrl: u
+            } as any;
         });
 
         const info = await orchestrator.getMediaInfo('indienova', 'game-id');

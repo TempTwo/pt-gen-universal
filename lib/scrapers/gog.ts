@@ -9,13 +9,17 @@ import { NONE_EXIST_ERROR } from '../utils/error';
 const DEFAULT_TIMEOUT_MS = 10_000;
 
 export class GogScraper implements Scraper {
-    private async resolveGogId(sid: string, timeoutMs: number, config: AppConfig): Promise<string> {
+    private async resolveGogId(
+        sid: string,
+        timeoutMs: number,
+        config: AppConfig
+    ): Promise<{ gogId: string; proxyUsed: boolean }> {
         if (/^\d+$/.test(sid)) {
-            return sid;
+            return { gogId: sid, proxyUsed: false };
         }
 
         const url = `https://catalog.gog.com/v1/catalog?query=${encodeURIComponent(sid)}`;
-        const response = await fetchWithTimeout(url, {}, timeoutMs, config);
+        const { response, proxyUsed } = await fetchWithTimeout(url, {}, timeoutMs, config);
 
         if (!response.ok) {
             throw new Error(`GOG Catalog API returned status ${response.status}`);
@@ -31,22 +35,27 @@ export class GogScraper implements Scraper {
             throw new Error(NONE_EXIST_ERROR);
         }
 
-        return String(matched.id);
+        return { gogId: String(matched.id), proxyUsed };
     }
 
     async fetch(id: string, config: AppConfig): Promise<GogRawData> {
         const timeoutMs =
             config.timeout ??
             DEFAULT_TIMEOUT_MS;
+        let proxy_used = false;
         let gogId: string;
         try {
-            gogId = await this.resolveGogId(id, timeoutMs, config);
+            const resolved = await this.resolveGogId(id, timeoutMs, config);
+            gogId = resolved.gogId;
+            proxy_used = proxy_used || resolved.proxyUsed;
         } catch (e: any) {
             throw new Error(e.message || NONE_EXIST_ERROR);
         }
 
         const apiUrl = `https://api.gog.com/products/${gogId}?expand=description,screenshots,videos`;
-        const apiResp = await fetchWithTimeout(apiUrl, {}, timeoutMs, config);
+        const apiResult = await fetchWithTimeout(apiUrl, {}, timeoutMs, config);
+        const apiResp = apiResult.response;
+        proxy_used = proxy_used || apiResult.proxyUsed;
 
         if (apiResp.status === 404) {
             throw new Error(NONE_EXIST_ERROR);
@@ -61,11 +70,13 @@ export class GogScraper implements Scraper {
 
         if (slug) {
             const pageUrl = `https://www.gog.com/en/game/${slug}`;
-            const pageResp = await fetchWithTimeout(pageUrl, {
+            const pageResult = await fetchWithTimeout(pageUrl, {
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
                 }
             }, timeoutMs, config);
+            const pageResp = pageResult.response;
+            proxy_used = proxy_used || pageResult.proxyUsed;
 
             if (pageResp.ok) {
                 storeHtml = await pageResp.text();
@@ -75,6 +86,7 @@ export class GogScraper implements Scraper {
         return {
             site: 'gog',
             success: true,
+            proxy_used,
             sid: id,
             gog_id: gogId,
             api_data: apiData,
@@ -87,7 +99,7 @@ export class GogScraper implements Scraper {
             config.timeout ??
             DEFAULT_TIMEOUT_MS;
         const url = `https://catalog.gog.com/v1/catalog?query=${encodeURIComponent(query)}`;
-        const response = await fetchWithTimeout(url, {}, timeoutMs, config);
+        const { response } = await fetchWithTimeout(url, {}, timeoutMs, config);
         if (!response.ok) {
             throw new Error(`GOG search failed: ${response.status}`);
         }

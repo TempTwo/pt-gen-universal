@@ -7,37 +7,10 @@ import { V2Controller } from './controllers/v2';
 import { AppError, ErrorCode } from '../lib/errors';
 import { DEFAULT_SITE_PLUGINS } from './registry';
 import { CTX_CACHEABLE } from './utils/context'
+import { CacheManager } from './cache/cache-manager'
+import type { Storage } from './storage/storage'
 
-export interface Storage {
-  get(key: string): Promise<string | null>
-  put(key: string, value: string, ttl?: number): Promise<void>
-  delete(key: string): Promise<void>
-}
-
-// Cache key hashing: KV has key length limits; hashing also normalizes long/variable queries.
-async function sha256Hex(input: string): Promise<string> {
-  // Prefer WebCrypto (CF Workers / modern runtimes).
-  if (globalThis.crypto?.subtle) {
-    const data = new TextEncoder().encode(input)
-    const digest = await globalThis.crypto.subtle.digest('SHA-256', data)
-    return Array.from(new Uint8Array(digest))
-      .map((b) => b.toString(16).padStart(2, '0'))
-      .join('')
-  }
-
-  throw new Error('WebCrypto (crypto.subtle) is required for cache key hashing')
-}
-
-function stableSearchString(url: URL): string {
-  // Make query order stable for better cache hit ratio.
-  const entries = Array.from(url.searchParams.entries())
-    .filter(([k]) => k !== 'apikey' && k !== 'debug')
-    .sort(([ak, av], [bk, bv]) => (ak === bk ? av.localeCompare(bv) : ak.localeCompare(bk)))
-  if (entries.length === 0) return ''
-  const sp = new URLSearchParams()
-  for (const [k, v] of entries) sp.append(k, v)
-  return `?${sp.toString()}`
-}
+export type { Storage } from './storage/storage'
 
 function normalizeCacheTTL(value: unknown): number {
   const DEFAULT = 86400 * 2
@@ -63,12 +36,16 @@ function getRequestApiKey(c: Context): string | undefined {
 function createErrorHandler() {
   return (err: unknown, c: Context) => {
     if (err instanceof AppError) {
+      const details = err.details
+      const proxy_used =
+        typeof (details as any)?.proxy_used === 'boolean' ? (details as any).proxy_used : false
       return c.json(
         {
           error: {
             code: err.code,
             message: err.message,
-            details: err.details,
+            details,
+            proxy_used,
             request_id: c.req.header('x-request-id')
           }
         },
@@ -87,7 +64,8 @@ function createErrorHandler() {
       {
         error: {
           code: 'INTERNAL_ERROR',
-          message
+          message,
+          proxy_used: false
         }
       },
       500
@@ -95,12 +73,23 @@ function createErrorHandler() {
   }
 }
 
-async function generateCacheKey(c: Context) {
-  const url = new URL(c.req.url)
-  const stableSearch = stableSearchString(url)
-  const rawKey = `${c.req.method}:${url.pathname}${stableSearch}`
-  const hashed = await sha256Hex(rawKey)
-  return `ptgen:cache:${hashed}`
+function warnProxyConfig(config: AppConfig) {
+  const proxyUrl = String(config.proxyUrl || '').trim()
+  if (!proxyUrl) return
+
+  if (config.proxyAllowSensitiveHeaders) {
+    console.warn(
+      '[ptgen] PROXY_ALLOW_SENSITIVE_HEADERS is enabled. Cookie/Authorization may be forwarded to the proxy. Use only a trusted/self-hosted proxy.'
+    )
+  }
+
+  // These cookies are sensitive; by default we intentionally do NOT proxy them.
+  const hasSensitiveCookie = Boolean(config.doubanCookie || config.indienovaCookie)
+  if (hasSensitiveCookie && !config.proxyAllowSensitiveHeaders) {
+    console.warn(
+      '[ptgen] PROXY_URL is set but PROXY_ALLOW_SENSITIVE_HEADERS is disabled. DOUBAN_COOKIE/INDIENOVA_COOKIE (if set) will NOT be forwarded to the proxy.'
+    )
+  }
 }
 
 function createAuthMiddleware(config: AppConfig) {
@@ -118,34 +107,21 @@ function createAuthMiddleware(config: AppConfig) {
 }
 
 export function createCacheMiddleware(storage: Storage, cacheTTL: number) {
+  const cache = new CacheManager(storage, cacheTTL)
   return async (c: Context, next: () => Promise<void>) => {
-    if (cacheTTL === 0) return next()
-    // Only cache GET. POST (e.g. /api/v2/info JSON body) must never share cache keys.
-    if (c.req.method !== 'GET') return next()
-    // Debug responses should never be cached, and should never be served from cache.
-    // `debug` is intentionally excluded from the cache key for hit ratio, so we must bypass.
-    if (c.req.query('debug') === '1') return next()
+    if (!cache.isEnabled() || !cache.isRequestEligible(c)) return next()
 
-    let cacheKey: string
+    let cacheKey: string | null = null
     try {
-      cacheKey = await generateCacheKey(c)
+      cacheKey = await cache.makeCacheKey(c)
     } catch {
       // If key generation fails for any reason, just bypass cache.
       return next()
     }
 
     try {
-      const cached = await storage.get(cacheKey)
-      if (cached) {
-        try {
-          return c.json(JSON.parse(cached))
-        } catch {
-          // Corrupted cache entry: best-effort delete.
-          try {
-            await storage.delete(cacheKey)
-          } catch {}
-        }
-      }
+      const cached = await cache.get(cacheKey)
+      if (cached) return c.json(cached)
     } catch {
       // Cache backend errors must not affect the main response.
     }
@@ -153,19 +129,11 @@ export function createCacheMiddleware(storage: Storage, cacheTTL: number) {
     await next()
 
     if (c.res.status !== 200) return
+    if (c.get(CTX_CACHEABLE) !== true) return
     try {
       const clonedRes = c.res.clone()
       const data = await clonedRes.json()
-      if (c.get(CTX_CACHEABLE) === true) {
-        const write = storage.put(cacheKey, JSON.stringify(data), cacheTTL)
-        // In CF Workers, avoid delaying the response on cache writes when possible.
-        const execCtx = (c as any).executionCtx
-        if (execCtx && typeof execCtx.waitUntil === 'function') {
-          execCtx.waitUntil(write)
-        } else {
-          await write
-        }
-      }
+      await cache.set(cacheKey, data, c)
     } catch {
       // Never let cache serialization/write failures break the response.
     }
@@ -266,6 +234,8 @@ export function createApp(storage: Storage, config: AppConfig = {}) {
   // HTML must be provided by the runtime adapter (Node/Bun/CF).
   const htmlPage = config.htmlPage || ''
   const cacheTTL = normalizeCacheTTL(config.cacheTTL) // 默认 2 天
+
+  warnProxyConfig(config)
 
   // 全局 CORS 中间件
   app.use('*', cors())

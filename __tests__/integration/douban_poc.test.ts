@@ -20,15 +20,16 @@ describe('Douban POC Integration', () => {
         orchestrator = new Orchestrator(config, [doubanPlugin]);
     });
 
-    it('should fetch and format douban desktop movie info', async () => {
-        const fetchSpy = vi.spyOn(fetchModule, 'fetchWithTimeout').mockImplementation(async (url) => {
-            if (url.includes('movie.douban.com/subject/1292052/')) {
-                const res = new Response(DOUBAN_HTML, { status: 200 });
-                Object.defineProperty(res, 'url', { value: 'https://movie.douban.com/subject/1292052/' });
-                return res;
-            }
-            return new Response('', { status: 404 });
-        });
+	    it('should fetch and format douban desktop movie info', async () => {
+	        const fetchSpy = vi.spyOn(fetchModule, 'fetchWithTimeout').mockImplementation(async (url) => {
+	            const u = String(url);
+	            if (u.includes('movie.douban.com/subject/1292052/')) {
+	                const res = new Response(DOUBAN_HTML, { status: 200 });
+	                Object.defineProperty(res, 'url', { value: 'https://movie.douban.com/subject/1292052/' });
+	                return { response: res, proxyUsed: false, finalUrl: u } as any;
+	            }
+	            return { response: new Response('', { status: 404 }), proxyUsed: false, finalUrl: u } as any;
+	        });
 
         const info = await orchestrator.getMediaInfo('douban', '1292052');
         const result = new BBCodeFormatter().format(info);
@@ -55,18 +56,19 @@ describe('Douban POC Integration', () => {
         expect(fetchSpy).toHaveBeenCalled();
     });
 
-    it('should fetch and format douban mobile movie info', async () => {
-        const fetchSpy = vi.spyOn(fetchModule, 'fetchWithTimeout').mockImplementation(async (url) => {
-            if (url === 'https://movie.douban.com/subject/1292052/') {
-                throw new Error('Network error');
-            }
-            if (url === 'https://m.douban.com/movie/subject/1292052/') {
-                const res = new Response(DOUBAN_MOBILE_HTML, { status: 200 });
-                Object.defineProperty(res, 'url', { value: 'https://m.douban.com/movie/subject/1292052/' });
-                return res;
-            }
-            return new Response('', { status: 404 });
-        });
+	    it('should fetch and format douban mobile movie info', async () => {
+	        const fetchSpy = vi.spyOn(fetchModule, 'fetchWithTimeout').mockImplementation(async (url) => {
+	            const u = String(url);
+	            if (u === 'https://movie.douban.com/subject/1292052/') {
+	                throw new Error('Network error');
+	            }
+	            if (u === 'https://m.douban.com/movie/subject/1292052/') {
+	                const res = new Response(DOUBAN_MOBILE_HTML, { status: 200 });
+	                Object.defineProperty(res, 'url', { value: 'https://m.douban.com/movie/subject/1292052/' });
+	                return { response: res, proxyUsed: false, finalUrl: u } as any;
+	            }
+	            return { response: new Response('', { status: 404 }), proxyUsed: false, finalUrl: u } as any;
+	        });
 
         const info = await orchestrator.getMediaInfo('douban', '1292052');
         const result = new BBCodeFormatter().format(info);

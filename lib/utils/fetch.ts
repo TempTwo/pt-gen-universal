@@ -2,6 +2,12 @@ import type { AppConfig } from '../types/config';
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 
+export type FetchWithTimeoutResult = {
+    response: Response;
+    proxyUsed: boolean;
+    finalUrl: string;
+};
+
 function buildProxiedUrl(proxyUrl: string, targetUrl: string): string {
     const proxy = String(proxyUrl || '').trim();
     if (!proxy) return targetUrl;
@@ -47,7 +53,7 @@ export async function fetchWithTimeout(
     init: RequestInit = {},
     timeoutMs: number = DEFAULT_TIMEOUT_MS,
     config?: AppConfig
-): Promise<Response> {
+): Promise<FetchWithTimeoutResult> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     try {
@@ -66,7 +72,8 @@ export async function fetchWithTimeout(
                     : buildProxiedUrl(config.proxyUrl, url)
                 : url;
 
-        return await fetch(finalUrl, { ...init, signal: controller.signal });
+        const response = await fetch(finalUrl, { ...init, signal: controller.signal });
+        return { response, proxyUsed: finalUrl !== url, finalUrl };
     } finally {
         clearTimeout(timeoutId);
     }

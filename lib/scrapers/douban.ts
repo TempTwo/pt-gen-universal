@@ -22,27 +22,31 @@ export class DoubanScraper implements Scraper {
             DEFAULT_TIMEOUT_MS;
         const baseHeaders = this.buildHeaders(config);
         const cfgCookie = normalizeCookie(config.doubanCookie);
-        const bid = /(?:^|;\s*)bid=/.test(cfgCookie)
-            ? ''
+        const warmup = /(?:^|;\s*)bid=/.test(cfgCookie)
+            ? { cookie: '', proxyUsed: false }
             : await this.warmupBidCookie(config, baseHeaders);
+        let proxy_used = warmup.proxyUsed;
+        const bid = warmup.cookie;
         const cookieHeader = mergeCookies(cfgCookie, bid);
         const headers = cookieHeader
             ? { ...baseHeaders, Cookie: cookieHeader }
             : baseHeaders;
 
         const doubanLink = `https://movie.douban.com/subject/${id}/`;
-        const { html, blocked, status } = await this.fetchSubjectHtml(
+        const { html, blocked, status, proxyUsed: subjectProxyUsed } = await this.fetchSubjectHtml(
             id,
             headers,
             timeoutMs,
             config
         );
+        proxy_used = proxy_used || subjectProxyUsed;
 
         if (blocked) {
             return {
                 site: 'douban',
                 sid: id,
                 success: false,
+                proxy_used,
                 error:
                     'Blocked by Douban anti-bot (sec.douban.com). Try setting DOUBAN_COOKIE or switching to Cloudflare Workers/Bun runtime.',
             };
@@ -53,6 +57,7 @@ export class DoubanScraper implements Scraper {
                 site: 'douban',
                 sid: id,
                 success: false,
+                proxy_used,
                 error:
                     status === 404
                         ? NONE_EXIST_ERROR
@@ -64,6 +69,7 @@ export class DoubanScraper implements Scraper {
             site: 'douban',
             sid: id,
             success: true,
+            proxy_used,
             html: html,
             douban_link: doubanLink,
         };
@@ -74,9 +80,11 @@ export class DoubanScraper implements Scraper {
         // To keep it clean, Scraper should fetch everything possible and return it in RawData.
 
         try {
-            const awardsHtml = await this.fetchAwards(id, config, headers, timeoutMs);
-            if (awardsHtml) {
-                data.awards_html = awardsHtml;
+            const awards = await this.fetchAwards(id, config, headers, timeoutMs);
+            proxy_used = proxy_used || awards.proxyUsed;
+            data.proxy_used = proxy_used;
+            if (awards.html) {
+                data.awards_html = awards.html;
             }
         } catch {
             // ignore
@@ -98,9 +106,11 @@ export class DoubanScraper implements Scraper {
         if (imdbText) {
             const imdbId = String(imdbText).trim();
             data.imdb_id = imdbId;
-            const imdbData = await this.fetchImdbRating(imdbId, config, timeoutMs);
-            if (imdbData) {
-                data.imdb_data = imdbData;
+            const imdb = await this.fetchImdbRating(imdbId, config, timeoutMs);
+            proxy_used = proxy_used || imdb.proxyUsed;
+            data.proxy_used = proxy_used;
+            if (imdb.data) {
+                data.imdb_data = imdb.data;
             }
         }
 
@@ -114,9 +124,10 @@ export class DoubanScraper implements Scraper {
             DEFAULT_TIMEOUT_MS;
         const baseHeaders = this.buildHeaders(config);
         const cfgCookie = normalizeCookie(config.doubanCookie);
-        const bid = /(?:^|;\s*)bid=/.test(cfgCookie)
-            ? ''
+        const warmup = /(?:^|;\s*)bid=/.test(cfgCookie)
+            ? { cookie: '', proxyUsed: false }
             : await this.warmupBidCookie(config, baseHeaders);
+        const bid = warmup.cookie;
         const cookieHeader = mergeCookies(cfgCookie, bid);
         const headers = cookieHeader
             ? { ...baseHeaders, Cookie: cookieHeader }
@@ -124,7 +135,7 @@ export class DoubanScraper implements Scraper {
 
         await rateLimiter.acquire('douban', 3000);
 
-        const resp = await fetchWithTimeout(
+        const result = await fetchWithTimeout(
             `https://movie.douban.com/j/subject_suggest?q=${encodeURIComponent(
                 query
             )}`,
@@ -132,14 +143,19 @@ export class DoubanScraper implements Scraper {
             timeoutMs,
             config
         );
+        const resp = result.response;
 
         if (!resp.ok) {
             // Douban search endpoint can be blocked or rate-limited.
             const body = await resp.text().catch(() => '');
             if (this.looksLikeSecChallenge(resp, body)) {
-                throw new Error('Blocked by Douban anti-bot (sec.douban.com).');
+                const e: any = new Error('Blocked by Douban anti-bot (sec.douban.com).');
+                e.proxy_used = result.proxyUsed || warmup.proxyUsed;
+                throw e;
             }
-            throw new Error(`Douban search failed: ${resp.status} ${resp.statusText}`);
+            const e: any = new Error(`Douban search failed: ${resp.status} ${resp.statusText}`);
+            e.proxy_used = result.proxyUsed || warmup.proxyUsed;
+            throw e;
         }
 
         const json = await resp.json();
@@ -177,7 +193,7 @@ export class DoubanScraper implements Scraper {
     private async warmupBidCookie(
         config: AppConfig,
         baseHeaders: Record<string, string>
-    ): Promise<string> {
+    ): Promise<{ cookie: string; proxyUsed: boolean }> {
         try {
             await rateLimiter.acquire('douban', 2000);
             const timeoutMs =
@@ -189,15 +205,15 @@ export class DoubanScraper implements Scraper {
                     DEFAULT_WARMUP_TIMEOUT_MS
                 );
 
-            const resp = await fetchWithTimeout(
+            const { response: resp, proxyUsed } = await fetchWithTimeout(
                 'https://movie.douban.com/',
                 { headers: baseHeaders, redirect: 'manual' },
                 timeoutMs,
                 config
             );
-            return this.extractBidCookieFromResponse(resp);
+            return { cookie: this.extractBidCookieFromResponse(resp), proxyUsed };
         } catch {
-            return '';
+            return { cookie: '', proxyUsed: false };
         }
     }
 
@@ -224,7 +240,7 @@ export class DoubanScraper implements Scraper {
         headers: Record<string, string>,
         timeoutMs: number,
         config: AppConfig
-    ): Promise<{ html: string; blocked: boolean; url: string; status?: number }> {
+    ): Promise<{ html: string; blocked: boolean; url: string; status?: number; proxyUsed: boolean }> {
         const candidateUrls = [
             `https://movie.douban.com/subject/${sid}/`,
             `https://m.douban.com/movie/subject/${sid}/`,
@@ -232,11 +248,14 @@ export class DoubanScraper implements Scraper {
 
         let blocked = false;
         let lastStatus: number | undefined;
+        let proxyUsed = false;
 
         for (const url of candidateUrls) {
             try {
                 await rateLimiter.acquire('douban', 3000);
-                const resp = await fetchWithTimeout(url, { headers }, timeoutMs, config);
+                const result = await fetchWithTimeout(url, { headers }, timeoutMs, config);
+                proxyUsed = proxyUsed || result.proxyUsed;
+                const resp = result.response;
                 const text = await resp.text();
 
                 if (this.looksLikeSecChallenge(resp, text)) {
@@ -245,7 +264,7 @@ export class DoubanScraper implements Scraper {
                 }
 
                 if (resp.ok) {
-                    return { html: text, blocked: false, url, status: resp.status };
+                    return { html: text, blocked: false, url, status: resp.status, proxyUsed };
                 }
 
                 lastStatus = resp.status;
@@ -259,6 +278,7 @@ export class DoubanScraper implements Scraper {
             blocked,
             url: candidateUrls[candidateUrls.length - 1],
             status: lastStatus,
+            proxyUsed,
         };
     }
 
@@ -276,39 +296,48 @@ export class DoubanScraper implements Scraper {
         config: AppConfig,
         headers: Record<string, string>,
         timeoutMs: number
-    ): Promise<string | null> {
-        if (config.doubanIncludeAwards === false) return null;
+    ): Promise<{ html: string | null; proxyUsed: boolean }> {
+        if (config.doubanIncludeAwards === false) return { html: null, proxyUsed: false };
 
         await rateLimiter.acquire('douban', 2000);
-        const resp = await fetchWithTimeout(`https://movie.douban.com/subject/${sid}/awards`, { headers }, timeoutMs, config);
-        if (!resp.ok) return null;
+        const { response: resp, proxyUsed } = await fetchWithTimeout(
+            `https://movie.douban.com/subject/${sid}/awards`,
+            { headers },
+            timeoutMs,
+            config
+        );
+        if (!resp.ok) return { html: null, proxyUsed };
 
         const raw = await resp.text();
-        if (this.looksLikeSecChallenge(resp, raw)) return null;
+        if (this.looksLikeSecChallenge(resp, raw)) return { html: null, proxyUsed };
 
         // Just return raw html, let Normalizer parse it
-        return raw;
+        return { html: raw, proxyUsed };
     }
 
-    private async fetchImdbRating(imdbId: string, config: AppConfig, timeoutMs: number): Promise<any> {
-        if (config.doubanIncludeImdb === false) return null;
+    private async fetchImdbRating(
+        imdbId: string,
+        config: AppConfig,
+        timeoutMs: number
+    ): Promise<{ data: any | null; proxyUsed: boolean }> {
+        if (config.doubanIncludeImdb === false) return { data: null, proxyUsed: false };
 
         // Usually jsonp, but we can just fetch and parse
-        const resp = await fetchWithTimeout(
+        const { response: resp, proxyUsed } = await fetchWithTimeout(
             `https://p.media-imdb.com/static-content/documents/v1/title/${imdbId}/ratings%3Fjsonp=imdb.rating.run:imdb.api.title.ratings/data.json`,
             {},
             timeoutMs,
             config
         );
-        if (!resp.ok) return null;
+        if (!resp.ok) return { data: null, proxyUsed };
         const raw = await resp.text();
         // Simple jsonp parse
         try {
             const text = raw.replace(/\n/ig, '').match(/[^(]+\((.+)\)/)?.[1];
-            if (!text) return null;
-            return JSON.parse(text);
+            if (!text) return { data: null, proxyUsed };
+            return { data: JSON.parse(text), proxyUsed };
         } catch {
-            return null;
+            return { data: null, proxyUsed };
         }
     }
 }

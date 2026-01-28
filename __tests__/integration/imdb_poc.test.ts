@@ -61,21 +61,34 @@ describe('IMDb POC Integration', () => {
         `;
 
         const fetchSpy = vi.spyOn(fetchModule, 'fetchWithTimeout').mockImplementation(async (url) => {
-            if (url.endsWith('releaseinfo')) {
+            const u = String(url);
+            if (u.endsWith('releaseinfo')) {
                 return {
-                    ok: true,
-                    status: 200,
-                    text: async () => mockReleaseHtml
-                } as Response;
+                    response: {
+                        ok: true,
+                        status: 200,
+                        text: async () => mockReleaseHtml
+                    } as Response,
+                    proxyUsed: false,
+                    finalUrl: u
+                } as any;
             }
-            if (url.includes('www.imdb.com/title/')) {
+            if (u.includes('www.imdb.com/title/')) {
                 return {
-                    ok: true,
-                    status: 200,
-                    text: async () => mockMainHtml
-                } as Response;
+                    response: {
+                        ok: true,
+                        status: 200,
+                        text: async () => mockMainHtml
+                    } as Response,
+                    proxyUsed: false,
+                    finalUrl: u
+                } as any;
             }
-            return { ok: false, status: 404 } as Response;
+            return {
+                response: { ok: false, status: 404 } as Response,
+                proxyUsed: false,
+                finalUrl: u
+            } as any;
         });
 
         const info = await orchestrator.getMediaInfo('imdb', 'tt1375666');
@@ -98,10 +111,14 @@ describe('IMDb POC Integration', () => {
         };
 
         const fetchSpy = vi.spyOn(fetchModule, 'fetchWithTimeout').mockResolvedValue({
-            ok: true,
-            status: 200,
-            json: async () => mockSearchResponse
-        } as Response);
+            response: {
+                ok: true,
+                status: 200,
+                json: async () => mockSearchResponse
+            } as Response,
+            proxyUsed: false,
+            finalUrl: 'https://v2.sg.media-imdb.com/suggestion/i/inception.json'
+        } as any);
 
         const results = await orchestrator.search('imdb', 'Inception');
 

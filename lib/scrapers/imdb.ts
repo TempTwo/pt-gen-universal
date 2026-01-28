@@ -31,10 +31,13 @@ export class ImdbScraper implements Scraper {
         };
 
         // Fetch Main Page and Release Info Page concurrently
-        const [mainResp, releaseResp] = await Promise.all([
+        const [mainResult, releaseResult] = await Promise.all([
             fetchWithTimeout(imdbUrl, { headers }, timeoutMs, config),
             fetchWithTimeout(`${imdbUrl}releaseinfo`, { headers }, timeoutMs, config)
         ]);
+        const proxy_used = mainResult.proxyUsed || releaseResult.proxyUsed;
+        const mainResp = mainResult.response;
+        const releaseResp = releaseResult.response;
 
         if (!mainResp.ok) {
             if (mainResp.status === 404) {
@@ -113,6 +116,7 @@ export class ImdbScraper implements Scraper {
         return {
             site: 'imdb',
             success: true,
+            proxy_used,
             imdb_id: imdbId,
             json_ld: jsonLd,
             next_data: nextData,
@@ -133,7 +137,7 @@ export class ImdbScraper implements Scraper {
         const q = query.toLowerCase();
         const url = `https://v2.sg.media-imdb.com/suggestion/${encodeURIComponent(q.slice(0, 1))}/${encodeURIComponent(q)}.json`;
 
-        const response = await fetchWithTimeout(
+        const { response } = await fetchWithTimeout(
             url,
             headers ? { headers } : {},
             timeoutMs,

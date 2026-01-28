@@ -47,6 +47,15 @@ function nameFromUnknown(err: unknown): string | undefined {
   return typeof name === 'string' ? name : undefined;
 }
 
+function proxyUsedFromUnknown(err: unknown): boolean | undefined {
+  if (!isRecord(err)) return undefined;
+  const snake = (err as any).proxy_used;
+  if (typeof snake === 'boolean') return snake;
+  const camel = (err as any).proxyUsed;
+  if (typeof camel === 'boolean') return camel;
+  return undefined;
+}
+
 export function toAppError(err: unknown): AppError {
   if (err instanceof AppError) return err;
 
@@ -58,6 +67,8 @@ export function toAppError(err: unknown): AppError {
   const codes = chain.map(codeFromUnknown).filter(Boolean) as string[];
   const statuses = chain.map(statusFromUnknown).filter((s): s is number => typeof s === 'number');
   const status = statuses[0];
+  const proxy_used = chain.map(proxyUsedFromUnknown).find((v) => typeof v === 'boolean');
+  const details = typeof proxy_used === 'boolean' ? { proxy_used } : undefined;
 
   // Invalid/unsupported inputs should be treated as client errors.
   if (
@@ -72,19 +83,20 @@ export function toAppError(err: unknown): AppError {
     normalized.includes("invalid '") ||
     normalized.includes("missing '")
   ) {
-    return new AppError(ErrorCode.INVALID_PARAM, message);
+    return new AppError(ErrorCode.INVALID_PARAM, message, details);
   }
 
   // Site-specific "not found" message used across this repo.
   // Avoid broad substring matching ("not found") because many parser errors include it
   // (e.g. "JSON-LD script not found") and should be treated as INTERNAL_ERROR.
   if (message === NONE_EXIST_ERROR) {
-    return new AppError(ErrorCode.TARGET_NOT_FOUND, message);
+    return new AppError(ErrorCode.TARGET_NOT_FOUND, message, details);
   }
 
   // HTTP status hints from custom errors.
-  if (status === 404) return new AppError(ErrorCode.TARGET_NOT_FOUND, message);
-  if (status === 403 || status === 429) return new AppError(ErrorCode.TARGET_BLOCKING, message);
+  if (status === 404) return new AppError(ErrorCode.TARGET_NOT_FOUND, message, details);
+  if (status === 403 || status === 429)
+    return new AppError(ErrorCode.TARGET_BLOCKING, message, details);
 
   // Timeout / abort.
   if (
@@ -94,7 +106,7 @@ export function toAppError(err: unknown): AppError {
     normalized.includes('timed out') ||
     normalized.includes('abort')
   ) {
-    return new AppError(ErrorCode.TARGET_TIMEOUT, message);
+    return new AppError(ErrorCode.TARGET_TIMEOUT, message, details);
   }
 
   // Anti-bot / captcha / WAF challenges.
@@ -105,8 +117,8 @@ export function toAppError(err: unknown): AppError {
     normalized.includes('cloudflare') ||
     normalized.includes('waf')
   ) {
-    return new AppError(ErrorCode.TARGET_BLOCKING, message);
+    return new AppError(ErrorCode.TARGET_BLOCKING, message, details);
   }
 
-  return new AppError(ErrorCode.INTERNAL_ERROR, message);
+  return new AppError(ErrorCode.INTERNAL_ERROR, message, details);
 }

@@ -73,7 +73,12 @@ export class Orchestrator {
 
             const rawData = await plugin.scraper.fetch(id, this.config);
             if (!rawData.success) {
-                throw toAppError(new Error(rawData.error || 'Unknown error during fetch'));
+                const base = toAppError(new Error(rawData.error || 'Unknown error during fetch'));
+                const details = {
+                    ...(base.details || {}),
+                    proxy_used: rawData.proxy_used === true,
+                };
+                throw new AppError(base.code, base.message, details);
             }
 
             return plugin.normalizer.normalize(rawData, this.config);

@@ -20,16 +20,20 @@ export class SteamScraper implements Scraper {
             "Cookie": "lastagecheckage=1-January-1975; birthtime=157737601; mature_content=1; wants_mature_content=1; Steam_Language=schinese"
         };
 
-        const [pageResp, steamCnResp] = await Promise.all([
+        const [pageResult, steamCnResult] = await Promise.all([
             fetchWithTimeout(steamUrl, { headers, redirect: 'manual' }, timeoutMs, config),
             fetchWithTimeout(`https://steamdb.keylol.com/app/${id}/data.js?v=38`, {}, timeoutMs, config)
         ]);
+        const proxy_used = pageResult.proxyUsed || steamCnResult.proxyUsed;
+        const pageResp = pageResult.response;
+        const steamCnResp = steamCnResult.response;
 
         if (pageResp.status === 302) {
             return {
                 site: 'steam',
                 sid: id,
                 success: false,
+                proxy_used,
                 error: NONE_EXIST_ERROR
             };
         }
@@ -38,6 +42,7 @@ export class SteamScraper implements Scraper {
                 site: 'steam',
                 sid: id,
                 success: false,
+                proxy_used,
                 error: "GenHelp was temporary banned by Steam Server, Please wait...."
             };
         }
@@ -46,6 +51,7 @@ export class SteamScraper implements Scraper {
                 site: 'steam',
                 sid: id,
                 success: false,
+                proxy_used,
                 error: `Steam request failed: ${pageResp.status} ${pageResp.statusText}`
             };
         }
@@ -67,6 +73,7 @@ export class SteamScraper implements Scraper {
         return {
             site: 'steam',
             success: true,
+            proxy_used,
             sid: id,
             main_html: mainHtml,
             steamcn_data: steamCnData
@@ -78,7 +85,7 @@ export class SteamScraper implements Scraper {
             config.timeout ??
             DEFAULT_TIMEOUT_MS;
         const url = `https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(query)}&l=schinese&cc=CN`;
-        const response = await fetchWithTimeout(url, {}, timeoutMs, config);
+        const { response } = await fetchWithTimeout(url, {}, timeoutMs, config);
         if (!response.ok) {
             throw new Error(`Steam search failed: ${response.status} ${response.statusText}`);
         }
