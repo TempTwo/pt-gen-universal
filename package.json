@@ -34,7 +34,7 @@
   "dependencies": {
     "@hono/node-server": "^1.13.7",
     "cheerio": "^1.1.2",
-    "hono": "^4.11.4",
+    "hono": "^4.11.7",
     "html2bbcode": "^1.2.6"
   },
   "devDependencies": {
@@ -43,7 +43,7 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.17",
-    "wrangler": "^4.14.1"
+    "wrangler": "^4.59.1"
   },
   "overrides": {
     "entities": "^7.0.0",
