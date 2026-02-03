@@ -1,4 +1,3 @@
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Orchestrator } from '../../lib/orchestrator';
 import { BBCodeFormatter } from '../../lib/formatters/bbcode';
@@ -6,16 +5,16 @@ import * as fetchModule from '../../lib/utils/fetch';
 import { imdbPlugin } from '../../src/sites/imdb';
 
 describe('IMDb POC Integration', () => {
-    let orchestrator: Orchestrator;
+  let orchestrator: Orchestrator;
 
-    beforeEach(() => {
-        vi.restoreAllMocks();
-        const config = {};
-        orchestrator = new Orchestrator(config, [imdbPlugin]);
-    });
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    const config = {};
+    orchestrator = new Orchestrator(config, [imdbPlugin]);
+  });
 
-    it('should fetch and format imdb movie info', async () => {
-        const mockMainHtml = `
+  it('should fetch and format imdb movie info', async () => {
+    const mockMainHtml = `
             <html>
             <head>
                 <script type="application/ld+json">
@@ -45,7 +44,7 @@ describe('IMDb POC Integration', () => {
             </html>
         `;
 
-        const mockReleaseHtml = `
+    const mockReleaseHtml = `
             <html>
             <body>
                 <tr class="release-date-item">
@@ -60,70 +59,68 @@ describe('IMDb POC Integration', () => {
             </html>
         `;
 
-        const fetchSpy = vi.spyOn(fetchModule, 'fetchWithTimeout').mockImplementation(async (url) => {
-            const u = String(url);
-            if (u.endsWith('releaseinfo')) {
-                return {
-                    response: {
-                        ok: true,
-                        status: 200,
-                        text: async () => mockReleaseHtml
-                    } as Response,
-                    proxyUsed: false,
-                    finalUrl: u
-                } as any;
-            }
-            if (u.includes('www.imdb.com/title/')) {
-                return {
-                    response: {
-                        ok: true,
-                        status: 200,
-                        text: async () => mockMainHtml
-                    } as Response,
-                    proxyUsed: false,
-                    finalUrl: u
-                } as any;
-            }
-            return {
-                response: { ok: false, status: 404 } as Response,
-                proxyUsed: false,
-                finalUrl: u
-            } as any;
-        });
-
-        const info = await orchestrator.getMediaInfo('imdb', 'tt1375666');
-        const result = new BBCodeFormatter().format(info);
-
-        expect(result).toContain('Inception');
-        expect(result).toContain('2010');
-        expect(result).toContain('8.8/10 from 2000000 users');
-        expect(result).toContain('Christopher Nolan');
-        expect(result).toContain('Leonardo DiCaprio');
-
-        expect(fetchSpy).toHaveBeenCalledTimes(2);
+    const fetchSpy = vi.spyOn(fetchModule, 'fetchWithTimeout').mockImplementation(async (url) => {
+      const u = String(url);
+      if (u.endsWith('releaseinfo')) {
+        return {
+          response: {
+            ok: true,
+            status: 200,
+            text: async () => mockReleaseHtml,
+          } as Response,
+          proxyUsed: false,
+          finalUrl: u,
+        } as any;
+      }
+      if (u.includes('www.imdb.com/title/')) {
+        return {
+          response: {
+            ok: true,
+            status: 200,
+            text: async () => mockMainHtml,
+          } as Response,
+          proxyUsed: false,
+          finalUrl: u,
+        } as any;
+      }
+      return {
+        response: { ok: false, status: 404 } as Response,
+        proxyUsed: false,
+        finalUrl: u,
+      } as any;
     });
 
-    it('should handle search queries', async () => {
-        const mockSearchResponse = {
-            d: [
-                { id: 'tt1375666', l: 'Inception', y: 2010, q: 'feature', i: { imageUrl: 'cover.jpg' } }
-            ]
-        };
+    const info = await orchestrator.getMediaInfo('imdb', 'tt1375666');
+    const result = new BBCodeFormatter().format(info);
 
-        const fetchSpy = vi.spyOn(fetchModule, 'fetchWithTimeout').mockResolvedValue({
-            response: {
-                ok: true,
-                status: 200,
-                json: async () => mockSearchResponse
-            } as Response,
-            proxyUsed: false,
-            finalUrl: 'https://v2.sg.media-imdb.com/suggestion/i/inception.json'
-        } as any);
+    expect(result).toContain('Inception');
+    expect(result).toContain('2010');
+    expect(result).toContain('8.8/10 from 2000000 users');
+    expect(result).toContain('Christopher Nolan');
+    expect(result).toContain('Leonardo DiCaprio');
 
-        const results = await orchestrator.search('imdb', 'Inception');
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+  });
 
-        expect(results).toHaveLength(1);
-        expect(results[0].title).toBe('Inception');
-        expect(results[0].id).toBe('tt1375666');
-    });
+  it('should handle search queries', async () => {
+    const mockSearchResponse = {
+      d: [{ id: 'tt1375666', l: 'Inception', y: 2010, q: 'feature', i: { imageUrl: 'cover.jpg' } }],
+    };
+
+    const fetchSpy = vi.spyOn(fetchModule, 'fetchWithTimeout').mockResolvedValue({
+      response: {
+        ok: true,
+        status: 200,
+        json: async () => mockSearchResponse,
+      } as Response,
+      proxyUsed: false,
+      finalUrl: 'https://v2.sg.media-imdb.com/suggestion/i/inception.json',
+    } as any);
+
+    const results = await orchestrator.search('imdb', 'Inception');
+
+    expect(results).toHaveLength(1);
+    expect(results[0].title).toBe('Inception');
+    expect(results[0].id).toBe('tt1375666');
+  });
 });

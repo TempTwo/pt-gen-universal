@@ -1,2 +1,1 @@
-export const CTX_CACHEABLE = 'cacheable' as const
-
+export const CTX_CACHEABLE = 'cacheable' as const;

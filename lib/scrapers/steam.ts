@@ -1,4 +1,3 @@
-
 import { Scraper } from '../interfaces/scraper';
 import { AppConfig } from '../types/config';
 import { SteamRawData } from '../types/raw-data';
@@ -9,96 +8,93 @@ import { NONE_EXIST_ERROR } from '../utils/error';
 const DEFAULT_TIMEOUT_MS = 10_000;
 
 export class SteamScraper implements Scraper {
-    async fetch(id: string, config: AppConfig): Promise<SteamRawData> {
-        const timeoutMs =
-            config.timeout ??
-            DEFAULT_TIMEOUT_MS;
-        const steamUrl = `https://store.steampowered.com/app/${id}/?l=schinese`;
+  async fetch(id: string, config: AppConfig): Promise<SteamRawData> {
+    const timeoutMs = config.timeout ?? DEFAULT_TIMEOUT_MS;
+    const steamUrl = `https://store.steampowered.com/app/${id}/?l=schinese`;
 
-        // Use cookies to bypass age check and force language
-        const headers = {
-            "Cookie": "lastagecheckage=1-January-1975; birthtime=157737601; mature_content=1; wants_mature_content=1; Steam_Language=schinese"
-        };
+    // Use cookies to bypass age check and force language
+    const headers = {
+      Cookie:
+        'lastagecheckage=1-January-1975; birthtime=157737601; mature_content=1; wants_mature_content=1; Steam_Language=schinese',
+    };
 
-        const [pageResult, steamCnResult] = await Promise.all([
-            fetchWithTimeout(steamUrl, { headers, redirect: 'manual' }, timeoutMs, config),
-            fetchWithTimeout(`https://steamdb.keylol.com/app/${id}/data.js?v=38`, {}, timeoutMs, config)
-        ]);
-        const proxy_used = pageResult.proxyUsed || steamCnResult.proxyUsed;
-        const pageResp = pageResult.response;
-        const steamCnResp = steamCnResult.response;
+    const [pageResult, steamCnResult] = await Promise.all([
+      fetchWithTimeout(steamUrl, { headers, redirect: 'manual' }, timeoutMs, config),
+      fetchWithTimeout(`https://steamdb.keylol.com/app/${id}/data.js?v=38`, {}, timeoutMs, config),
+    ]);
+    const proxy_used = pageResult.proxyUsed || steamCnResult.proxyUsed;
+    const pageResp = pageResult.response;
+    const steamCnResp = steamCnResult.response;
 
-        if (pageResp.status === 302) {
-            return {
-                site: 'steam',
-                sid: id,
-                success: false,
-                proxy_used,
-                error: NONE_EXIST_ERROR
-            };
-        }
-        if (pageResp.status === 403) {
-            return {
-                site: 'steam',
-                sid: id,
-                success: false,
-                proxy_used,
-                error: "GenHelp was temporary banned by Steam Server, Please wait...."
-            };
-        }
-        if (!pageResp.ok) {
-            return {
-                site: 'steam',
-                sid: id,
-                success: false,
-                proxy_used,
-                error: `Steam request failed: ${pageResp.status} ${pageResp.statusText}`
-            };
-        }
-
-        const mainHtml = await pageResp.text();
-
-        let steamCnData = {};
-        if (steamCnResp.ok) {
-            const text = await steamCnResp.text();
-            // JSONP parser logic: match(/[^(]+\((.+)\)/)[1]
-            try {
-                const match = text.replace(/\n/ig, '').match(/[^(]+\((.+)\)/);
-                if (match && match[1]) {
-                    steamCnData = JSON.parse(match[1]);
-                }
-            } catch { }
-        }
-
-        return {
-            site: 'steam',
-            success: true,
-            proxy_used,
-            sid: id,
-            main_html: mainHtml,
-            steamcn_data: steamCnData
-        };
+    if (pageResp.status === 302) {
+      return {
+        site: 'steam',
+        sid: id,
+        success: false,
+        proxy_used,
+        error: NONE_EXIST_ERROR,
+      };
+    }
+    if (pageResp.status === 403) {
+      return {
+        site: 'steam',
+        sid: id,
+        success: false,
+        proxy_used,
+        error: 'GenHelp was temporary banned by Steam Server, Please wait....',
+      };
+    }
+    if (!pageResp.ok) {
+      return {
+        site: 'steam',
+        sid: id,
+        success: false,
+        proxy_used,
+        error: `Steam request failed: ${pageResp.status} ${pageResp.statusText}`,
+      };
     }
 
-    async search(query: string, config: AppConfig): Promise<SearchResult[]> {
-        const timeoutMs =
-            config.timeout ??
-            DEFAULT_TIMEOUT_MS;
-        const url = `https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(query)}&l=schinese&cc=CN`;
-        const { response } = await fetchWithTimeout(url, {}, timeoutMs, config);
-        if (!response.ok) {
-            throw new Error(`Steam search failed: ${response.status} ${response.statusText}`);
+    const mainHtml = await pageResp.text();
+
+    let steamCnData = {};
+    if (steamCnResp.ok) {
+      const text = await steamCnResp.text();
+      // JSONP parser logic: match(/[^(]+\((.+)\)/)[1]
+      try {
+        const match = text.replace(/\n/gi, '').match(/[^(]+\((.+)\)/);
+        if (match && match[1]) {
+          steamCnData = JSON.parse(match[1]);
         }
-
-        const json = await response.json();
-        const items = Array.isArray((json as any)?.items) ? (json as any).items : [];
-
-        return items.map((item: any) => ({
-            provider: 'steam',
-            id: String(item.id),
-            title: item.name,
-            link: `https://store.steampowered.com/app/${item.id}`,
-            poster: item.tiny_image
-        }));
+      } catch {}
     }
+
+    return {
+      site: 'steam',
+      success: true,
+      proxy_used,
+      sid: id,
+      main_html: mainHtml,
+      steamcn_data: steamCnData,
+    };
+  }
+
+  async search(query: string, config: AppConfig): Promise<SearchResult[]> {
+    const timeoutMs = config.timeout ?? DEFAULT_TIMEOUT_MS;
+    const url = `https://store.steampowered.com/api/storesearch/?term=${encodeURIComponent(query)}&l=schinese&cc=CN`;
+    const { response } = await fetchWithTimeout(url, {}, timeoutMs, config);
+    if (!response.ok) {
+      throw new Error(`Steam search failed: ${response.status} ${response.statusText}`);
+    }
+
+    const json = await response.json();
+    const items = Array.isArray((json as any)?.items) ? (json as any).items : [];
+
+    return items.map((item: any) => ({
+      provider: 'steam',
+      id: String(item.id),
+      title: item.name,
+      link: `https://store.steampowered.com/app/${item.id}`,
+      poster: item.tiny_image,
+    }));
+  }
 }

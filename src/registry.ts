@@ -8,12 +8,11 @@ import { steamPlugin } from './sites/steam';
 import { tmdbPlugin } from './sites/tmdb';
 
 export const DEFAULT_SITE_PLUGINS: SitePlugin[] = [
-    doubanPlugin,
-    tmdbPlugin,
-    imdbPlugin,
-    bangumiPlugin,
-    steamPlugin,
-    gogPlugin,
-    indienovaPlugin,
+  doubanPlugin,
+  tmdbPlugin,
+  imdbPlugin,
+  bangumiPlugin,
+  steamPlugin,
+  gogPlugin,
+  indienovaPlugin,
 ];
-

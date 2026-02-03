@@ -77,4 +77,3 @@ describe('Formatters - show links even when rating missing', () => {
     expect(out).toContain('https://bgm.tv/subject/1');
   });
 });
-

@@ -1,49 +1,52 @@
 {
-    "name": "pt-gen-universal",
-    "version": "2.0.0",
-    "description": "PT-Gen on server and serverless platforms",
-    "main": "src/adapters/cloudflare.ts",
-    "type": "module",
-    "scripts": {
-        "dev:cf": "wrangler dev",
-        "dev:bun": "bun --hot src/adapters/bun.ts",
-        "dev:node": "tsx watch --env-file=.env src/adapters/node.ts",
-        "build:cf": "wrangler deploy",
-        "start:bun": "bun src/adapters/bun.ts",
-        "start:node": "tsx --env-file=.env src/adapters/node.ts",
-        "build": "wrangler build",
-        "preview": "wrangler preview",
-        "publish": "wrangler publish",
-        "deploy": "wrangler deploy",
-        "test": "vitest",
-        "test:ui": "vitest --ui",
-        "test:run": "vitest run"
-    },
-    "engines": {
-        "node": ">=20.6.0",
-        "bun": ">=1.0.0"
-    },
-    "author": "YunFeng <YunFengZero@outlook.com>",
-    "forkedFrom": "github.com/Rhilip/pt-gen-cfworker",
-    "contributors": [
-        "Rhilip <rhilipruan@gmail.com>"
-    ],
-    "license": "MIT",
-    "dependencies": {
-        "@hono/node-server": "^1.13.7",
-        "cheerio": "^1.1.2",
-        "hono": "^4.11.4",
-        "html2bbcode": "^1.2.6"
-    },
-    "devDependencies": {
-        "@types/node": "^25.0.9",
-        "tsx": "^4.21.0",
-        "typescript": "^5.9.3",
-        "vitest": "^4.0.17",
-        "wrangler": "^4.14.1"
-    },
-    "overrides": {
-        "entities": "^7.0.0",
-        "undici": "^7.18.2"
-    }
+  "name": "pt-gen-universal",
+  "version": "2.0.0",
+  "description": "PT-Gen on server and serverless platforms",
+  "main": "src/adapters/cloudflare.ts",
+  "type": "module",
+  "scripts": {
+    "dev:cf": "wrangler dev",
+    "dev:bun": "bun --hot src/adapters/bun.ts",
+    "dev:node": "tsx watch --env-file=.env src/adapters/node.ts",
+    "build:cf": "wrangler deploy",
+    "start:bun": "bun src/adapters/bun.ts",
+    "start:node": "tsx --env-file=.env src/adapters/node.ts",
+    "build": "wrangler build",
+    "preview": "wrangler preview",
+    "publish": "wrangler publish",
+    "deploy": "wrangler deploy",
+    "format": "prettier --write \"**/*.{ts,js,json,md}\"",
+    "format:check": "prettier --check \"**/*.{ts,js,json,md}\"",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run"
+  },
+  "engines": {
+    "node": ">=20.6.0",
+    "bun": ">=1.0.0"
+  },
+  "author": "YunFeng <YunFengZero@outlook.com>",
+  "forkedFrom": "github.com/Rhilip/pt-gen-cfworker",
+  "contributors": [
+    "Rhilip <rhilipruan@gmail.com>"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@hono/node-server": "^1.13.7",
+    "cheerio": "^1.1.2",
+    "hono": "^4.11.4",
+    "html2bbcode": "^1.2.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.9",
+    "prettier": "^3.4.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.17",
+    "wrangler": "^4.14.1"
+  },
+  "overrides": {
+    "entities": "^7.0.0",
+    "undici": "^7.18.2"
+  }
 }

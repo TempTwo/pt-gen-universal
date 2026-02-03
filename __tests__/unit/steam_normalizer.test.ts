@@ -1,4 +1,3 @@
-
 import { describe, it, expect } from 'vitest';
 import { SteamNormalizer } from '../../lib/normalizers/steam';
 import { SteamRawData } from '../../lib/types/raw-data';
@@ -9,15 +8,15 @@ import { SteamRawData } from '../../lib/types/raw-data';
 // Vitest environment is node, so it should find node_modules.
 
 describe('SteamNormalizer', () => {
-    const normalizer = new SteamNormalizer();
-    const config = {};
+  const normalizer = new SteamNormalizer();
+  const config = {};
 
-    it('should normalize steam data correctly', () => {
-        const rawData: SteamRawData = {
-            site: 'steam',
-            success: true,
-            sid: '100',
-            main_html: `
+  it('should normalize steam data correctly', () => {
+    const rawData: SteamRawData = {
+      site: 'steam',
+      success: true,
+      sid: '100',
+      main_html: `
                 <div class="apphub_AppName">Black Myth: Wukong</div>
                 <img class="game_header_image_full" src="https://example.com/cover.jpg?t=123" />
                 <div class="details_block">
@@ -40,22 +39,22 @@ describe('SteamNormalizer', () => {
                 <a class="app_tag">Action</a>
                 <a class="app_tag">Role-Playing</a>
             `,
-            steamcn_data: { name_cn: '黑神话：悟空' }
-        };
+      steamcn_data: { name_cn: '黑神话：悟空' },
+    };
 
-        const result = normalizer.normalize(rawData, config);
+    const result = normalizer.normalize(rawData, config);
 
-        expect(result.site).toBe('steam');
-        expect(result.id).toBe('100');
-        expect(result.title).toBe('黑神话：悟空');
-        expect(result.original_title).toBe('Black Myth: Wukong');
-        expect(result.poster).toBe('https://example.com/cover.jpg');
-        expect(result.director).toEqual(['Game Science']);
-        expect(result.writer).toEqual(['Game Science']);
-        expect(result.playdate).toContain('2024 年 8 月 20 日');
-        expect(result.genre).toEqual(['Action', 'Role-Playing']);
+    expect(result.site).toBe('steam');
+    expect(result.id).toBe('100');
+    expect(result.title).toBe('黑神话：悟空');
+    expect(result.original_title).toBe('Black Myth: Wukong');
+    expect(result.poster).toBe('https://example.com/cover.jpg');
+    expect(result.director).toEqual(['Game Science']);
+    expect(result.writer).toEqual(['Game Science']);
+    expect(result.playdate).toContain('2024 年 8 月 20 日');
+    expect(result.genre).toEqual(['Action', 'Role-Playing']);
 
-        expect((result.extra as any).sysreq).toBeDefined();
-        // expect(result.extra.sysreq[0]).toContain('Windows');
-    });
+    expect((result.extra as any).sysreq).toBeDefined();
+    // expect(result.extra.sysreq[0]).toContain('Windows');
+  });
 });

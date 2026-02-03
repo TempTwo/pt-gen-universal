@@ -10,4 +10,3 @@ export function formatMovieInfo(data: any, format: LegacyFormat = 'bbcode'): str
 }
 
 export { BBCodeFormatter, MarkdownFormatter };
-

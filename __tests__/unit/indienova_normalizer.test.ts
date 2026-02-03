@@ -1,14 +1,13 @@
-
 import { describe, it, expect } from 'vitest';
 import { IndienovaNormalizer } from '../../lib/normalizers/indienova';
 import { IndienovaRawData } from '../../lib/types/raw-data';
 
 describe('IndienovaNormalizer', () => {
-    const normalizer = new IndienovaNormalizer();
-    const config = {};
+  const normalizer = new IndienovaNormalizer();
+  const config = {};
 
-    it('should normalize indienova data correctly', () => {
-        const html = `
+  it('should normalize indienova data correctly', () => {
+    const html = `
             <div class="cover-image"><img src="https://example.com/cover.jpg"></div>
             <title>黑神话：悟空 - Title | Indienova</title>
             <div class="title-holder">
@@ -32,20 +31,20 @@ describe('IndienovaNormalizer', () => {
             </ul>
         `;
 
-        const rawData: IndienovaRawData = {
-            site: 'indienova',
-            success: true,
-            sid: '123',
-            html: html
-        };
+    const rawData: IndienovaRawData = {
+      site: 'indienova',
+      success: true,
+      sid: '123',
+      html: html,
+    };
 
-        const result = normalizer.normalize(rawData, config);
+    const result = normalizer.normalize(rawData, config);
 
-        expect(result.site).toBe('indienova');
-        expect(result.title).toBe('黑神话：悟空');
-        expect(result.original_title).toBe('Black Myth: Wukong');
-        expect(result.director).toEqual(['Game Science']);
-        expect((result.extra as any).price).toHaveLength(1);
-        expect((result.extra as any).price[0]).toContain('Steam：$60');
-    });
+    expect(result.site).toBe('indienova');
+    expect(result.title).toBe('黑神话：悟空');
+    expect(result.original_title).toBe('Black Myth: Wukong');
+    expect(result.director).toEqual(['Game Science']);
+    expect((result.extra as any).price).toHaveLength(1);
+    expect((result.extra as any).price[0]).toContain('Steam：$60');
+  });
 });

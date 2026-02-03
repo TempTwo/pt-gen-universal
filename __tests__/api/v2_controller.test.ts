@@ -1,10 +1,10 @@
-import { describe, it, expect } from 'vitest'
-import { Hono } from 'hono'
-import { V2Controller } from '../../src/controllers/v2'
-import { AppError, ErrorCode } from '../../lib/errors'
+import { describe, it, expect } from 'vitest';
+import { Hono } from 'hono';
+import { V2Controller } from '../../src/controllers/v2';
+import { AppError, ErrorCode } from '../../lib/errors';
 
 function makeTestApp(v2: V2Controller) {
-  const app = new Hono()
+  const app = new Hono();
 
   // Match src/app.ts error shape for v2.
   app.onError((err, c) => {
@@ -17,7 +17,7 @@ function makeTestApp(v2: V2Controller) {
           },
         },
         err.httpStatus as any
-      )
+      );
     }
 
     return c.json(
@@ -28,15 +28,15 @@ function makeTestApp(v2: V2Controller) {
         },
       },
       500
-    )
-  })
+    );
+  });
 
-  app.get('/api/v2/info', (c) => v2.handleInfo(c))
-  app.get('/api/v2/info/:site/:sid', (c) => v2.handleInfo(c))
-  app.post('/api/v2/info', (c) => v2.handleInfo(c))
-  app.get('/api/v2/search', (c) => v2.handleSearch(c))
+  app.get('/api/v2/info', (c) => v2.handleInfo(c));
+  app.get('/api/v2/info/:site/:sid', (c) => v2.handleInfo(c));
+  app.post('/api/v2/info', (c) => v2.handleInfo(c));
+  app.get('/api/v2/search', (c) => v2.handleSearch(c));
 
-  return app
+  return app;
 }
 
 describe('API v2 controller contract', () => {
@@ -52,7 +52,7 @@ describe('API v2 controller contract', () => {
     language: ['英语'],
     playdate: ['1994-09-10'],
     introduction: 'test intro',
-  }
+  };
 
   it('supports query site/sid (previously broken) and defaults format=json', async () => {
     const v2 = new V2Controller(
@@ -61,18 +61,16 @@ describe('API v2 controller contract', () => {
         search: async () => [],
       } as any,
       {}
-    )
-    const app = makeTestApp(v2)
+    );
+    const app = makeTestApp(v2);
 
-    const res = await app.request(
-      'http://localhost/api/v2/info?site=douban&sid=1292052'
-    )
-    expect(res.status).toBe(200)
-    const json = await res.json()
-    expect(json.data.site).toBe('douban')
+    const res = await app.request('http://localhost/api/v2/info?site=douban&sid=1292052');
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.data.site).toBe('douban');
     // Default is json, so no formatted output should be present.
-    expect('format' in json.data).toBe(false)
-  })
+    expect('format' in json.data).toBe(false);
+  });
 
   it('reads format from query (bbcode) and includes formatted output', async () => {
     const v2 = new V2Controller(
@@ -81,17 +79,17 @@ describe('API v2 controller contract', () => {
         search: async () => [],
       } as any,
       {}
-    )
-    const app = makeTestApp(v2)
+    );
+    const app = makeTestApp(v2);
 
     const res = await app.request(
       'http://localhost/api/v2/info?site=douban&sid=1292052&format=bbcode'
-    )
-    expect(res.status).toBe(200)
-    const json = await res.json()
-    expect(typeof json.data.format).toBe('string')
-    expect(json.data.format).toContain('◎译')
-  })
+    );
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(typeof json.data.format).toBe('string');
+    expect(json.data.format).toContain('◎译');
+  });
 
   it('allows POST /info with only query params and empty body', async () => {
     const v2 = new V2Controller(
@@ -100,17 +98,16 @@ describe('API v2 controller contract', () => {
         search: async () => [],
       } as any,
       {}
-    )
-    const app = makeTestApp(v2)
+    );
+    const app = makeTestApp(v2);
 
-    const res = await app.request(
-      'http://localhost/api/v2/info?site=douban&sid=1292052',
-      { method: 'POST' }
-    )
-    expect(res.status).toBe(200)
-    const json = await res.json()
-    expect(json.data.site).toBe('douban')
-  })
+    const res = await app.request('http://localhost/api/v2/info?site=douban&sid=1292052', {
+      method: 'POST',
+    });
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.data.site).toBe('douban');
+  });
 
   it('reads format from query for RESTful path routes', async () => {
     const v2 = new V2Controller(
@@ -119,17 +116,15 @@ describe('API v2 controller contract', () => {
         search: async () => [],
       } as any,
       {}
-    )
-    const app = makeTestApp(v2)
+    );
+    const app = makeTestApp(v2);
 
-    const res = await app.request(
-      'http://localhost/api/v2/info/douban/1292052?format=markdown'
-    )
-    expect(res.status).toBe(200)
-    const json = await res.json()
-    expect(typeof json.data.format).toBe('string')
-    expect(json.data.format).toContain('## 基本信息')
-  })
+    const res = await app.request('http://localhost/api/v2/info/douban/1292052?format=markdown');
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(typeof json.data.format).toBe('string');
+    expect(json.data.format).toContain('## 基本信息');
+  });
 
   it('rejects invalid format with INVALID_PARAM (400)', async () => {
     const v2 = new V2Controller(
@@ -138,16 +133,16 @@ describe('API v2 controller contract', () => {
         search: async () => [],
       } as any,
       {}
-    )
-    const app = makeTestApp(v2)
+    );
+    const app = makeTestApp(v2);
 
     const res = await app.request(
       'http://localhost/api/v2/info?site=douban&sid=1292052&format=xml'
-    )
-    expect(res.status).toBe(400)
-    const json = await res.json()
-    expect(json.error.code).toBe('INVALID_PARAM')
-  })
+    );
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error.code).toBe('INVALID_PARAM');
+  });
 
   it('enforces disableSearch in v2', async () => {
     const v2 = new V2Controller(
@@ -156,54 +151,51 @@ describe('API v2 controller contract', () => {
         search: async () => [],
       } as any,
       { disableSearch: true }
-    )
-    const app = makeTestApp(v2)
+    );
+    const app = makeTestApp(v2);
 
-    const res = await app.request(
-      'http://localhost/api/v2/search?q=test&source=douban'
-    )
-    expect(res.status).toBe(403)
-    const json = await res.json()
-    expect(json.error.code).toBe('FEATURE_DISABLED')
-  })
+    const res = await app.request('http://localhost/api/v2/search?q=test&source=douban');
+    expect(res.status).toBe(403);
+    const json = await res.json();
+    expect(json.error.code).toBe('FEATURE_DISABLED');
+  });
 
   it('returns FEATURE_DISABLED (403) when a site does not support search', async () => {
     const v2 = new V2Controller(
       {
         getMediaInfo: async () => fakeInfo,
         search: async () => {
-          throw new AppError(ErrorCode.FEATURE_DISABLED, 'search not supported for site: indienova')
+          throw new AppError(
+            ErrorCode.FEATURE_DISABLED,
+            'search not supported for site: indienova'
+          );
         },
       } as any,
       {}
-    )
-    const app = makeTestApp(v2)
+    );
+    const app = makeTestApp(v2);
 
-    const res = await app.request(
-      'http://localhost/api/v2/search?q=test&source=indienova'
-    )
-    expect(res.status).toBe(403)
-    const json = await res.json()
-    expect(json.error.code).toBe('FEATURE_DISABLED')
-  })
+    const res = await app.request('http://localhost/api/v2/search?q=test&source=indienova');
+    expect(res.status).toBe(403);
+    const json = await res.json();
+    expect(json.error.code).toBe('FEATURE_DISABLED');
+  });
 
   it('maps unknown sources as INVALID_PARAM (400) instead of 500', async () => {
     const v2 = new V2Controller(
       {
         getMediaInfo: async () => {
-          throw new Error('Scraper not found: unknown')
+          throw new Error('Scraper not found: unknown');
         },
         search: async () => [],
       } as any,
       {}
-    )
-    const app = makeTestApp(v2)
+    );
+    const app = makeTestApp(v2);
 
-    const res = await app.request(
-      'http://localhost/api/v2/info?site=unknown&sid=1'
-    )
-    expect(res.status).toBe(400)
-    const json = await res.json()
-    expect(json.error.code).toBe('INVALID_PARAM')
-  })
-})
+    const res = await app.request('http://localhost/api/v2/info?site=unknown&sid=1');
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error.code).toBe('INVALID_PARAM');
+  });
+});

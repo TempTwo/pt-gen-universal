@@ -1,28 +1,17 @@
 {
-    "compilerOptions": {
-        "target": "ESNext",
-        "module": "ESNext",
-        "moduleResolution": "bundler",
-        "lib": [
-            "ESNext",
-            "DOM",
-            "DOM.Iterable"
-        ],
-        "skipLibCheck": true,
-        "strict": true,
-        "noEmit": true,
-        "esModuleInterop": true,
-        "allowSyntheticDefaultImports": true,
-        "forceConsistentCasingInFileNames": true,
-        "isolatedModules": true,
-        "types": [
-            "node",
-            "vitest/globals"
-        ]
-    },
-    "include": [
-        "src",
-        "lib",
-        "__tests__"
-    ]
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "types": ["node", "vitest/globals"]
+  },
+  "include": ["src", "lib", "__tests__"]
 }

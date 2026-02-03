@@ -112,11 +112,13 @@ npm run dev:bun
 提供更规范的 JSON 响应和原生多格式支持。
 
 **简介生成（URL 模式）：**
+
 ```
 GET /api/v2/info?url=https://movie.douban.com/subject/1292052/
 ```
 
 **简介生成（POST 模式）：**
+
 ```bash
 POST /api/v2/info
 Content-Type: application/json
@@ -131,16 +133,19 @@ Content-Type: application/json
 ```
 
 **简介生成（RESTful 模式）：**
+
 ```
 GET /api/v2/info/douban/1292052
 ```
 
 **资源搜索：**
+
 ```
 GET /api/v2/search?q=肖申克&source=douban
 ```
 
 **参数说明：**
+
 - `url`: 资源链接
 - `format`: 输出格式，可选 `json` (默认), `bbcode`, `markdown`
 - `q`: 搜索关键词
@@ -151,16 +156,19 @@ GET /api/v2/search?q=肖申克&source=douban
 > **注意**：建议新集成的应用使用 API v2。
 
 **资源搜索：**
+
 ```
 GET /api/v1/search?q=肖申克&source=douban
 ```
 
 **简介生成（URL 模式）：**
+
 ```
 GET /api/v1/info?url=https://movie.douban.com/subject/1292052/
 ```
 
 **简介生成（RESTful 模式）：**
+
 ```
 GET /api/v1/info/douban/1292052
 ```
@@ -188,27 +196,30 @@ GET /?site=douban&sid=1292052
 ### 请求参数
 
 **资源搜索：**
+
 - `q` / `search`：搜索关键词
 - `source`：资源来源站点（见下表），默认 `douban`
 
 **简介生成（方法1，推荐）：**
+
 - `url`：资源链接（见下表支持格式）
 
 **简介生成（方法2）：**
+
 - `site`：资源来源站点
 - `sid`：资源在对应站点的唯一 ID
 
 ## 支持资源站点
 
-| 站点 | 搜索 | 链接格式示例 |
-|:---:|:---:|:------|
-| **douban** | ✅ | `https://movie.douban.com/subject/1292052/` |
-| **imdb** | ✅ | `https://www.imdb.com/title/tt0111161/` |
-| **bangumi** | ✅ | `https://bgm.tv/subject/12345` |
-| **tmdb** | ✅ | `https://www.themoviedb.org/movie/278` |
-| **steam** | ✅ | `https://store.steampowered.com/app/730/` |
-| **indienova** | ✅ | `https://indienova.com/game/game-name` |
-| **gog** | ✅ | `https://www.gog.com/game/cyberpunk_2077` |
+|     站点      | 搜索 | 链接格式示例                                |
+| :-----------: | :--: | :------------------------------------------ |
+|  **douban**   |  ✅  | `https://movie.douban.com/subject/1292052/` |
+|   **imdb**    |  ✅  | `https://www.imdb.com/title/tt0111161/`     |
+|  **bangumi**  |  ✅  | `https://bgm.tv/subject/12345`              |
+|   **tmdb**    |  ✅  | `https://www.themoviedb.org/movie/278`      |
+|   **steam**   |  ✅  | `https://store.steampowered.com/app/730/`   |
+| **indienova** |  ✅  | `https://indienova.com/game/game-name`      |
+|    **gog**    |  ✅  | `https://www.gog.com/game/cyberpunk_2077`   |
 
 > **注意**：Steam 服务器限制 CF Worker 访问，使用CF Worker时相关功能可用性将下降。
 
@@ -301,28 +312,30 @@ INDIENOVA_COOKIE=your-indienova-cookie
 
 ### 环境变量说明
 
-| 变量 | 说明 |
-|:---:|:---|
-| `APIKEY` | API 访问密钥。可用 query `?apikey={APIKEY}`，或 header `X-API-Key: {APIKEY}` / `Authorization: Bearer {APIKEY}` |
-| `DISABLE_SEARCH` | 设置为 `"true"` 时禁用搜索功能 |
-| `CACHE_TTL` | 缓存过期时间（秒），默认 172800（2天）。设置为 0 禁用缓存（仅缓存 GET /api/*） |
-| `PROXY_URL` | 可选：抓取中转（URL relay），用于网络受限环境。支持前缀模式或模板模式（`{url}` / `{urlEncoded}`），详见 `.env.example` |
+|              变量               | 说明                                                                                                                      |
+| :-----------------------------: | :------------------------------------------------------------------------------------------------------------------------ |
+|            `APIKEY`             | API 访问密钥。可用 query `?apikey={APIKEY}`，或 header `X-API-Key: {APIKEY}` / `Authorization: Bearer {APIKEY}`           |
+|        `DISABLE_SEARCH`         | 设置为 `"true"` 时禁用搜索功能                                                                                            |
+|           `CACHE_TTL`           | 缓存过期时间（秒），默认 172800（2天）。设置为 0 禁用缓存（仅缓存 GET /api/\*）                                           |
+|           `PROXY_URL`           | 可选：抓取中转（URL relay），用于网络受限环境。支持前缀模式或模板模式（`{url}` / `{urlEncoded}`），详见 `.env.example`    |
 | `PROXY_ALLOW_SENSITIVE_HEADERS` | 可选：允许在使用 `PROXY_URL` 时转发敏感请求头（Cookie/Authorization）。默认 `false` 更安全；仅在你完全信任/自建中转时开启 |
-| `TMDB_API_KEY` | TMDB API 密钥，用于访问 TMDB 资源。获取地址：https://www.themoviedb.org/settings/api |
-| `DOUBAN_COOKIE` | 豆瓣 Cookie，用于访问登录可见资源 |
-| `INDIENOVA_COOKIE` | indienova Cookie（[#15](https://github.com/Rhilip/pt-gen-universal/issues/15)） |
-| `PORT` | Node.js/Bun 服务器端口（默认 3000） |
-| `PT_GEN_STORE` | KV 存储命名空间（仅 CF Workers，在 wrangler.toml 配置） |
+|         `TMDB_API_KEY`          | TMDB API 密钥，用于访问 TMDB 资源。获取地址：https://www.themoviedb.org/settings/api                                      |
+|         `DOUBAN_COOKIE`         | 豆瓣 Cookie，用于访问登录可见资源                                                                                         |
+|       `INDIENOVA_COOKIE`        | indienova Cookie（[#15](https://github.com/Rhilip/pt-gen-universal/issues/15)）                                           |
+|             `PORT`              | Node.js/Bun 服务器端口（默认 3000）                                                                                       |
+|         `PT_GEN_STORE`          | KV 存储命名空间（仅 CF Workers，在 wrangler.toml 配置）                                                                   |
 
 ### 安全最佳实践
 
 **Cloudflare Workers：**
+
 - ✅ 使用 Secrets 存储敏感信息（APIKEY、Cookie）
 - ✅ 本地开发使用 `.dev.vars`（已在 `.gitignore`）
 - ❌ 不要在 `wrangler.toml` 的 `[vars]` 中写敏感信息
 - ❌ 不要提交 `.dev.vars` 到 git
 
 **Node.js / Bun：**
+
 - ✅ 使用 `.env` 文件存储配置（已在 `.gitignore`）
 - ✅ 参考 `.env.example` 创建你的 `.env`
 - ❌ 不要提交 `.env` 到 git
@@ -377,4 +390,5 @@ pt-gen-universal/
 4. **中间件架构**：统一处理缓存、CORS、APIKEY 验证
 
 ## License
+
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FYunFeng86%2Fpt-gen-universal.svg?type=large&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2FYunFeng86%2Fpt-gen-universal?ref=badge_large&issueType=license)

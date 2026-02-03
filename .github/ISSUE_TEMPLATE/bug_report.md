@@ -4,7 +4,6 @@ about: Create a report to help us improve
 title: ''
 labels: bug
 assignees: Rhilip
-
 ---
 
 <!-- 未按ISSUE模板提交的，将会被直接关闭而不被处理。非Pt-Gen-cfworker版问题同样也不会处理。 -->
